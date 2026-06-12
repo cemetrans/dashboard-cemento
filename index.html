@@ -93,7 +93,7 @@
             <select id="filtroEmpresa" class="form-select form-select-sm"></select>
           </div>
           <div class="col-6 col-md-3">
-            <select id="filtroFamilia" class="form-select form-select-sm"></select>
+            <select id="filtroMatricula" class="form-select form-select-sm"></select>
           </div>
           <div class="col-6 col-md-3">
             <select id="filtroObra" class="form-select form-select-sm"></select>
@@ -129,7 +129,7 @@
           <thead>
             <tr>
               <th>Fecha</th><th>Albarán</th><th>Centro</th><th>Obra</th>
-              <th>Artículo</th><th>Familia</th><th>Cantidad</th><th>Und</th><th>Importe</th><th>Empresa</th>
+              <th>Artículo</th><th>Matrícula</th><th>Cantidad</th><th>Und</th><th>Importe</th><th>Empresa</th>
             </tr>
           </thead>
           <tbody id="tablaBody"></tbody>
@@ -171,7 +171,7 @@ async function cargarExcel() {
       if (typeof r.Centro   === "string") r.Centro   = r.Centro.trim();
       if (typeof r.Empresa  === "string") r.Empresa  = r.Empresa.trim();
       if (typeof r.Obra     === "string") r.Obra     = r.Obra.trim();
-      if (typeof r.Familia  === "string") r.Familia  = r.Familia.trim();
+      if (typeof r.Matricula  === "string") r.Matricula  = r.Matricula.trim();
       if (typeof r["Nombre obra"] === "string") r["Nombre obra"] = r["Nombre obra"].trim();
       if (typeof r.Cantidad === "string") r.Cantidad = r.Cantidad.replace(",",".");
       if (typeof r.Importe  === "string") r.Importe  = r.Importe.replace(",",".");
@@ -205,18 +205,18 @@ function populateFilters() {
   const centros   = new Set();
   const empresas  = new Set();
   const obras     = new Set();
-  const familias  = new Set();
+  const matriculas  = new Set();
 
   rawData.forEach(r => {
     if (r.Centro)  centros.add(r.Centro);
     if (r.Empresa) empresas.add(r.Empresa);
     if (r["Nombre obra"]) obras.add(r["Nombre obra"]);
-    if (r.Familia) familias.add(r.Familia);
+    if (r.Matricula) matriculas.add(r.Matricula);
   });
 
   fillSelect("filtroCentro",  [...centros].sort(),  "Centro");
   fillSelect("filtroEmpresa", [...empresas].sort(), "Empresa");
-  fillSelect("filtroFamilia", [...familias].sort(), "Familia");
+  fillSelect("filtroMatricula", [...matriculas].sort(), "Matrícula");
   fillSelect("filtroObra",    [...obras].sort(),    "Nombre obra");
 }
 
@@ -231,13 +231,13 @@ function fillSelect(id, arr, label) {
 }
 
 function attachFilterEvents() {
-  ["filtroCentro","filtroEmpresa","filtroObra","filtroFamilia"].forEach(id => {
+  ["filtroCentro","filtroEmpresa","filtroObra","filtroMatricula"].forEach(id => {
     document.getElementById(id).addEventListener("change", applyFilters);
   });
 }
 
 function resetFiltros() {
-  ["filtroCentro","filtroEmpresa","filtroObra","filtroFamilia"].forEach(id => {
+  ["filtroCentro","filtroEmpresa","filtroObra","filtroMatricula"].forEach(id => {
     document.getElementById(id).value = "";
   });
   applyFilters();
@@ -247,13 +247,13 @@ function applyFilters() {
   const centro  = document.getElementById("filtroCentro").value;
   const empresa = document.getElementById("filtroEmpresa").value;
   const obra    = document.getElementById("filtroObra").value;
-  const familia = document.getElementById("filtroFamilia").value;
+  const matricula = document.getElementById("filtroMatricula").value;
 
   filteredData = rawData.filter(r =>
     (!centro  || r.Centro  === centro)  &&
     (!empresa || r.Empresa === empresa) &&
     (!obra    || (r["Nombre obra"]||"").trim() === obra) &&
-    (!familia || r.Familia === familia)
+    (!matricula || r.Matricula === matricula)
   );
 
   renderAll();
@@ -288,18 +288,20 @@ function updateCharts() {
   const mapT = {}, mapI = {};
 
   filteredData.forEach(r => {
-    const f = r.Fecha; if (!f) return;
-    const imp = Number(r.Importe) || 0;
+    const f = String(r.Fecha || "").trim();
+    if (!f) return;
+    const imp  = Number(String(r.Importe  || 0).replace(",",".")) || 0;
+    const cant = Number(String(r.Cantidad || 0).replace(",",".")) || 0;
     mapI[f] = (mapI[f] || 0) + imp;
     if (r.Unidades === "T") {
-      mapT[f] = (mapT[f] || 0) + (Number(r.Cantidad) || 0);
+      mapT[f] = (mapT[f] || 0) + cant;
     }
   });
 
   const labT = Object.keys(mapT), datT = Object.values(mapT);
   const labI = Object.keys(mapI), datI = Object.values(mapI);
 
-  const chartOpts = (color) => ({
+  const chartOpts = () => ({
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
@@ -310,23 +312,20 @@ function updateCharts() {
     }
   });
 
-  if (chartT) { chartT.data.labels = labT; chartT.data.datasets[0].data = datT; chartT.update(); }
-  else {
-    chartT = new Chart(document.getElementById("chartToneladasDia"), {
-      type:"line",
-      data:{ labels:labT, datasets:[{ label:"Toneladas", data:datT, borderColor:"#66fcf1", backgroundColor:"rgba(102,252,241,0.1)", tension:0.2, pointRadius:2 }]},
-      options: chartOpts("#66fcf1")
-    });
-  }
+  if (chartT) { chartT.destroy(); chartT = null; }
+  if (chartI) { chartI.destroy(); chartI = null; }
 
-  if (chartI) { chartI.data.labels = labI; chartI.data.datasets[0].data = datI; chartI.update(); }
-  else {
-    chartI = new Chart(document.getElementById("chartImporteDia"), {
-      type:"line",
-      data:{ labels:labI, datasets:[{ label:"Importe", data:datI, borderColor:"#45a29e", backgroundColor:"rgba(69,162,158,0.1)", tension:0.2, pointRadius:2 }]},
-      options: chartOpts("#45a29e")
-    });
-  }
+  chartT = new Chart(document.getElementById("chartToneladasDia"), {
+    type:"line",
+    data:{ labels:labT, datasets:[{ label:"Toneladas", data:datT, borderColor:"#66fcf1", backgroundColor:"rgba(102,252,241,0.1)", tension:0.2, pointRadius:2 }]},
+    options: chartOpts()
+  });
+
+  chartI = new Chart(document.getElementById("chartImporteDia"), {
+    type:"line",
+    data:{ labels:labI, datasets:[{ label:"Importe", data:datI, borderColor:"#45a29e", backgroundColor:"rgba(69,162,158,0.1)", tension:0.2, pointRadius:2 }]},
+    options: chartOpts()
+  });
 }
 
 function renderTable() {
@@ -349,7 +348,7 @@ function renderTable() {
       <td>${r.Centro||""}</td>
       <td>${r["Nombre obra"]||r.Obra||""}</td>
       <td>${r.Articulo||r.Artículo||""}</td>
-      <td>${r.Familia||""}</td>
+      <td>${r.Matricula||""}</td>
       <td>${r.Cantidad||0}</td>
       <td>${und}</td>
       <td>${Number(r.Importe||0).toLocaleString("es-ES",{minimumFractionDigits:2})}</td>
