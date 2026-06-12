@@ -34,6 +34,18 @@
 </head>
 <body>
 
+
+<div id="loginScreen">
+  <div class="login-box">
+    <i class="fa-solid fa-chart-line fa-2x mb-3" style="color:#66fcf1"></i>
+    <h2>Dashboard Cemento</h2>
+    <input type="text" id="loginUser" placeholder="Usuario" />
+    <input type="password" id="loginPass" placeholder="Contraseña" />
+    <button onclick="checkLogin()">Entrar</button>
+    <div id="loginError">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
 <nav class="navbar navbar-dark px-3 py-2">
   <a class="navbar-brand d-flex align-items-center">
     <i class="fa-solid fa-chart-line me-2 text-info"></i>
@@ -141,6 +153,32 @@
 </div>
 
 <script>
+
+function checkLogin() {
+  const u = document.getElementById('loginUser').value;
+  const p = document.getElementById('loginPass').value;
+  if (u === 'cacsa' && p === '1954*') {
+    document.getElementById('loginScreen').style.display = 'none';
+    sessionStorage.setItem('auth','ok');
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+
+// Permitir login con Enter
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
+    checkLogin();
+  }
+});
+
+// Comprobar si ya estaba logado
+if (sessionStorage.getItem('auth') === 'ok') {
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('loginScreen').style.display = 'none';
+  });
+}
+
 const EXCEL_URL = "https://docs.google.com/spreadsheets/d/1gAcHAvF1jGVEasiahCM5P3dUKKwfEU0DoR8HFwUDx_s/export?format=xlsx&gid=1514026503";
 
 let rawData = [];
