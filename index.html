@@ -160,6 +160,7 @@ function checkLogin() {
   if (u === 'cacsa' && p === '1954*') {
     document.getElementById('loginScreen').style.display = 'none';
     sessionStorage.setItem('auth','ok');
+    cargarExcel();
   } else {
     document.getElementById('loginError').style.display = 'block';
   }
@@ -172,12 +173,7 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// Comprobar si ya estaba logado
-if (sessionStorage.getItem('auth') === 'ok') {
-  document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('loginScreen').style.display = 'none';
-  });
-}
+
 
 const EXCEL_URL = "https://docs.google.com/spreadsheets/d/1gAcHAvF1jGVEasiahCM5P3dUKKwfEU0DoR8HFwUDx_s/export?format=xlsx&gid=1514026503";
 
