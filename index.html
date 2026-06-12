@@ -159,6 +159,12 @@ async function cargarExcel() {
     rawData   = XLSX.utils.sheet_to_json(ws, { defval:"" });
 
     // Normalizar fechas
+    // Normalizar nombre de columna Matrícula (puede venir con variaciones)
+    rawData.forEach(r => {
+      const key = Object.keys(r).find(k => k.replace(/\s/g,'').toLowerCase().includes('matr'));
+      if (key && key !== 'Matrícula') { r['Matrícula'] = r[key]; }
+    });
+
     rawData.forEach(r => {
       if (r.Fecha instanceof Date) {
         r.Fecha = r.Fecha.toLocaleDateString("es-ES");
@@ -171,7 +177,7 @@ async function cargarExcel() {
       if (typeof r.Centro   === "string") r.Centro   = r.Centro.trim();
       if (typeof r.Empresa  === "string") r.Empresa  = r.Empresa.trim();
       if (typeof r.Obra     === "string") r.Obra     = r.Obra.trim();
-      if (typeof r.Matricula  === "string") r.Matricula  = r.Matricula.trim();
+      if (typeof r["Matrícula"]  === "string") r["Matrícula"] = r["Matrícula"].trim();
       if (typeof r["Nombre obra"] === "string") r["Nombre obra"] = r["Nombre obra"].trim();
       if (typeof r.Cantidad === "string") r.Cantidad = r.Cantidad.replace(",",".");
       if (typeof r.Importe  === "string") r.Importe  = r.Importe.replace(",",".");
@@ -211,7 +217,7 @@ function populateFilters() {
     if (r.Centro)  centros.add(r.Centro);
     if (r.Empresa) empresas.add(r.Empresa);
     if (r["Nombre obra"]) obras.add(r["Nombre obra"]);
-    if (r.Matricula) matriculas.add(r.Matricula);
+    if (r["Matrícula"]) matriculas.add(r["Matrícula"]);
   });
 
   fillSelect("filtroCentro",  [...centros].sort(),  "Centro");
@@ -253,7 +259,7 @@ function applyFilters() {
     (!centro  || r.Centro  === centro)  &&
     (!empresa || r.Empresa === empresa) &&
     (!obra    || (r["Nombre obra"]||"").trim() === obra) &&
-    (!matricula || r.Matricula === matricula)
+    (!matricula || r["Matrícula"] === matricula)
   );
 
   renderAll();
@@ -348,7 +354,7 @@ function renderTable() {
       <td>${r.Centro||""}</td>
       <td>${r["Nombre obra"]||r.Obra||""}</td>
       <td>${r.Articulo||r.Artículo||""}</td>
-      <td>${r.Matricula||""}</td>
+      <td>${r["Matrícula"]||""}</td>
       <td>${r.Cantidad||0}</td>
       <td>${und}</td>
       <td>${Number(r.Importe||0).toLocaleString("es-ES",{minimumFractionDigits:2})}</td>
