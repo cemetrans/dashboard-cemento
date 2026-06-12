@@ -209,14 +209,14 @@ function populateFilters() {
   rawData.forEach(r => {
     if (r.Centro)  centros.add(r.Centro);
     if (r.Empresa) empresas.add(r.Empresa);
-    if (r.Obra)    obras.add(r.Obra);
+    if (r["Nombre obra"]) obras.add(r["Nombre obra"]);
     if (r.Familia) familias.add(r.Familia);
   });
 
   fillSelect("filtroCentro",  [...centros].sort(),  "Centro");
   fillSelect("filtroEmpresa", [...empresas].sort(), "Empresa");
   fillSelect("filtroFamilia", [...familias].sort(), "Familia");
-  fillSelect("filtroObra",    [...obras].sort(),    "Obra");
+  fillSelect("filtroObra",    [...obras].sort(),    "Nombre obra");
 }
 
 function fillSelect(id, arr, label) {
@@ -251,7 +251,7 @@ function applyFilters() {
   filteredData = rawData.filter(r =>
     (!centro  || r.Centro  === centro)  &&
     (!empresa || r.Empresa === empresa) &&
-    (!obra    || r.Obra    === obra)    &&
+    (!obra    || (r["Nombre obra"]||"").trim() === obra) &&
     (!familia || r.Familia === familia)
   );
 
@@ -346,7 +346,7 @@ function renderTable() {
       <td>${r.Fecha||""}</td>
       <td>${r.Albarán||r.Albaran||""}</td>
       <td>${r.Centro||""}</td>
-      <td>${r.Obra||""}</td>
+      <td>${r["Nombre obra"]||r.Obra||""}</td>
       <td>${r.Articulo||r.Artículo||""}</td>
       <td>${r.Familia||""}</td>
       <td>${r.Cantidad||0}</td>
