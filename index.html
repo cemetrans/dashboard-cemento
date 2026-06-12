@@ -165,6 +165,11 @@ async function cargarExcel() {
       const matrKey = Object.keys(firstRow).find(k => k.trim().toLowerCase().replace(/[^a-z]/g,'').includes('matricula'));
       if (matrKey) {
         rawData.forEach(r => { r['_matricula'] = String(r[matrKey] || '').trim(); });
+        console.log('Columna matrícula detectada:', matrKey);
+        console.log('Ejemplo matrícula:', rawData[0]['_matricula'], '|fin|');
+        console.log('Total matrículas únicas:', new Set(rawData.map(r=>r['_matricula']).filter(Boolean)).size);
+      } else {
+        console.warn('NO SE ENCONTRÓ columna matrícula. Columnas disponibles:', Object.keys(rawData[0]));
       }
     }
 
