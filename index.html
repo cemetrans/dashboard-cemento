@@ -172,6 +172,7 @@ async function cargarExcel() {
       if (typeof r.Empresa  === "string") r.Empresa  = r.Empresa.trim();
       if (typeof r.Obra     === "string") r.Obra     = r.Obra.trim();
       if (typeof r.Familia  === "string") r.Familia  = r.Familia.trim();
+      if (typeof r["Nombre obra"] === "string") r["Nombre obra"] = r["Nombre obra"].trim();
       if (typeof r.Cantidad === "string") r.Cantidad = r.Cantidad.replace(",",".");
       if (typeof r.Importe  === "string") r.Importe  = r.Importe.replace(",",".");
     });
