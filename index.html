@@ -5,16 +5,10 @@
   <title>Dashboard Cemento · Auto-Excel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0c10">
-  <link rel="manifest" href="manifest.json">
 
-  <!-- Bootstrap / FontAwesome -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-  <!-- XLSX (lector Excel) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -23,131 +17,208 @@
     .card { background:#1f2833; border:1px solid #45a29e33; }
     .kpi-card { background:#1f2833; border:1px solid #45a29e; border-radius:8px; padding:12px 16px; }
     .kpi-value { font-size:2rem; font-weight:600; color:#66fcf1; }
-    .kpi-label { font-size:0.9rem; text-transform:uppercase; }
+    .kpi-label { font-size:0.85rem; text-transform:uppercase; color:#45a29e; }
     .chart-container { height:260px; }
-    .table thead { background:#1f2833; color:#66fcf1; }
+    .table thead th { background:#1f2833; color:#66fcf1; position:sticky; top:0; }
+    .table tbody tr:hover { background:#ffffff0a; }
     .form-select, .form-control { background:#0b0c10; border:1px solid #45a29e55; color:#c5c6c7; }
-    #offlineBanner { display:none; background:#e74c3c; color:white; padding:8px; text-align:center; }
+    .form-select:focus, .form-control:focus { background:#0b0c10; color:#c5c6c7; border-color:#45a29e; box-shadow:none; }
+    #loadingMsg { display:none; text-align:center; padding:40px; color:#45a29e; }
+    .badge-t { background:#66fcf122; color:#66fcf1; border:1px solid #66fcf144; border-radius:4px; padding:1px 6px; font-size:0.75rem; }
+    .badge-un { background:#45a29e22; color:#45a29e; border:1px solid #45a29e44; border-radius:4px; padding:1px 6px; font-size:0.75rem; }
     @media(max-width:768px){
-      .chart-container{height:320px!important;}
-      .kpi-value{font-size:1.8rem;}
+      .chart-container{height:280px!important;}
+      .kpi-value{font-size:1.6rem;}
     }
   </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark px-3">
+<nav class="navbar navbar-dark px-3 py-2">
   <a class="navbar-brand d-flex align-items-center">
     <i class="fa-solid fa-chart-line me-2 text-info"></i>
-    Dashboard Cemento · Auto-Excel
+    Dashboard Cemento
   </a>
+  <span id="lastUpdate" class="text-secondary small"></span>
 </nav>
-
-<div id="offlineBanner">Modo offline activado</div>
 
 <div class="container-fluid py-3">
 
-  <!-- KPIs -->
-  <div class="row g-3 mb-3">
-    <div class="col-12 col-md-3"><div class="kpi-card"><div class="kpi-label">Toneladas</div><div id="kpiToneladas" class="kpi-value">0</div></div></div>
-    <div class="col-12 col-md-3"><div class="kpi-card"><div class="kpi-label">Importe</div><div id="kpiImporte" class="kpi-value">0 €</div></div></div>
-    <div class="col-12 col-md-3"><div class="kpi-card"><div class="kpi-label">Albaranes</div><div id="kpiAlbaranes" class="kpi-value">0</div></div></div>
-    <div class="col-12 col-md-3"><div class="kpi-card"><div class="kpi-label">Ticket medio</div><div id="kpiTicketMedio" class="kpi-value">0 €</div></div></div>
+  <div id="loadingMsg">
+    <i class="fa-solid fa-spinner fa-spin fa-2x mb-2"></i><br>Cargando datos...
   </div>
 
-  <!-- Filtros -->
-  <div class="card mb-3">
-    <div class="card-header">Filtros</div>
-    <div class="card-body">
-      <div class="row g-2">
-        <div class="col-md-3"><select id="filtroCentro" class="form-select"><option value="">Centro</option></select></div>
-        <div class="col-md-3"><select id="filtroEmpresa" class="form-select"><option value="">Empresa</option></select></div>
-        <div class="col-md-3"><select id="filtroObra" class="form-select"><option value="">Obra</option></select></div>
-        <div class="col-md-3"><select id="filtroFamilia" class="form-select"><option value="">Familia</option></select></div>
+  <div id="mainContent" style="display:none">
+
+    <!-- KPIs -->
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label"><i class="fa-solid fa-weight-hanging me-1"></i>Toneladas (T)</div>
+          <div id="kpiToneladas" class="kpi-value">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label"><i class="fa-solid fa-boxes-stacked me-1"></i>Unidades (UN)</div>
+          <div id="kpiUnidades" class="kpi-value">0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label"><i class="fa-solid fa-euro-sign me-1"></i>Importe</div>
+          <div id="kpiImporte" class="kpi-value">0 €</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label"><i class="fa-solid fa-receipt me-1"></i>Albaranes</div>
+          <div id="kpiAlbaranes" class="kpi-value">0</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Gráficos -->
-  <div class="row g-3 mb-3">
-    <div class="col-lg-6"><div class="card"><div class="card-header">Toneladas por día</div><div class="card-body"><div class="chart-container"><canvas id="chartToneladasDia"></canvas></div></div></div></div>
-    <div class="col-lg-6"><div class="card"><div class="card-header">Importe por día</div><div class="card-body"><div class="chart-container"><canvas id="chartImporteDia"></canvas></div></div></div></div>
-  </div>
-
-  <!-- Tabla -->
-  <div class="card">
-    <div class="card-header">Detalle</div>
-    <div class="card-body table-responsive">
-      <table class="table table-dark table-sm">
-        <thead>
-          <tr>
-            <th>Fecha</th><th>Albarán</th><th>Obra</th><th>Centro</th><th>Artículo</th>
-            <th>Familia</th><th>Cantidad</th><th>Unidades</th><th>Importe</th><th>Empresa</th>
-          </tr>
-        </thead>
-        <tbody id="tablaBody"></tbody>
-      </table>
+    <!-- Filtros -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-filter me-1"></i>Filtros</span>
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetFiltros()">Limpiar</button>
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-6 col-md-3">
+            <select id="filtroCentro" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <select id="filtroEmpresa" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <select id="filtroFamilia" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-6 col-md-3">
+            <select id="filtroObra" class="form-select form-select-sm"></select>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
 
+    <!-- Gráficos -->
+    <div class="row g-3 mb-3">
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">Toneladas por día</div>
+          <div class="card-body p-2"><div class="chart-container"><canvas id="chartToneladasDia"></canvas></div></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">Importe por día</div>
+          <div class="card-body p-2"><div class="chart-container"><canvas id="chartImporteDia"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Detalle</span>
+        <span id="tablaInfo" class="text-secondary small"></span>
+      </div>
+      <div class="card-body p-0 table-responsive" style="max-height:400px;overflow-y:auto;">
+        <table class="table table-dark table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Albarán</th><th>Centro</th><th>Obra</th>
+              <th>Artículo</th><th>Familia</th><th>Cantidad</th><th>Und</th><th>Importe</th><th>Empresa</th>
+            </tr>
+          </thead>
+          <tbody id="tablaBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /mainContent -->
 </div>
 
 <script>
-const EXCEL_URL =
-  "https://docs.google.com/spreadsheets/d/1gAcHAvF1jGVEasiahCM5P3dUKKwfEU0DoR8HFwUDx_s/export?format=xlsx&gid=1514026503";
+const EXCEL_URL = "https://docs.google.com/spreadsheets/d/1gAcHAvF1jGVEasiahCM5P3dUKKwfEU0DoR8HFwUDx_s/export?format=xlsx&gid=1514026503";
 
 let rawData = [];
 let filteredData = [];
+let chartT = null;
+let chartI = null;
 
-async function cargarExcelDesdeNube() {
+// ── Carga ──────────────────────────────────────────────
+async function cargarExcel() {
+  document.getElementById("loadingMsg").style.display = "block";
   try {
-    const response = await fetch(EXCEL_URL);
-    const buffer = await response.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    rawData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    const res = await fetch(EXCEL_URL);
+    const buf = await res.arrayBuffer();
+    const wb  = XLSX.read(buf, { type:"array", cellDates:true });
+    const ws  = wb.Sheets[wb.SheetNames[0]];
+    rawData   = XLSX.utils.sheet_to_json(ws, { defval:"" });
+
+    // Normalizar fechas
+    rawData.forEach(r => {
+      if (r.Fecha instanceof Date) {
+        r.Fecha = r.Fecha.toLocaleDateString("es-ES");
+      } else if (typeof r.Fecha === "number") {
+        const d = XLSX.SSF.parse_date_code(r.Fecha);
+        r.Fecha = `${String(d.d).padStart(2,"0")}/${String(d.m).padStart(2,"0")}/${d.y}`;
+      }
+    });
+
+    document.getElementById("lastUpdate").textContent =
+      "Actualizado: " + new Date().toLocaleString("es-ES");
 
     filteredData = [...rawData];
     iniciarDashboard();
-
-    console.log("Excel cargado automáticamente desde Google Sheets");
-  } catch (err) {
-    console.error("Error cargando Excel:", err);
+  } catch(e) {
+    document.getElementById("loadingMsg").innerHTML =
+      '<i class="fa-solid fa-triangle-exclamation text-warning fa-2x mb-2"></i><br>Error cargando datos. Comprueba la conexión.';
+    console.error(e);
   }
 }
 
-window.addEventListener("DOMContentLoaded", cargarExcelDesdeNube);
+window.addEventListener("DOMContentLoaded", cargarExcel);
 
+// ── Init ───────────────────────────────────────────────
 function iniciarDashboard() {
+  document.getElementById("loadingMsg").style.display = "none";
+  document.getElementById("mainContent").style.display = "block";
   populateFilters();
   attachFilterEvents();
-  applyFilters();
-  initCharts();
+  renderAll();
 }
 
+// ── Filtros ────────────────────────────────────────────
 function populateFilters() {
-  const centros = new Set();
-  const empresas = new Set();
-  const obras = new Set();
-  const familias = new Set();
+  const centros   = new Set();
+  const empresas  = new Set();
+  const obras     = new Set();
+  const familias  = new Set();
 
   rawData.forEach(r => {
-    if (r.Centro) centros.add(r.Centro);
+    if (r.Centro)  centros.add(r.Centro);
     if (r.Empresa) empresas.add(r.Empresa);
-    if (r.Obra) obras.add(r.Obra);
+    if (r.Obra)    obras.add(r.Obra);
     if (r.Familia) familias.add(r.Familia);
   });
 
-  fillSelect("filtroCentro", centros);
-  fillSelect("filtroEmpresa", empresas);
-  fillSelect("filtroObra", obras);
-  fillSelect("filtroFamilia", familias);
+  fillSelect("filtroCentro",  [...centros].sort(),  "Centro");
+  fillSelect("filtroEmpresa", [...empresas].sort(), "Empresa");
+  fillSelect("filtroFamilia", [...familias].sort(), "Familia");
+  fillSelect("filtroObra",    [...obras].sort(),    "Obra");
 }
 
-function fillSelect(id, set) {
+function fillSelect(id, arr, label) {
   const sel = document.getElementById(id);
-  sel.innerHTML = '<option value="">Todos</option>';
-  set.forEach(v => sel.innerHTML += `<option>${v}</option>`);
+  sel.innerHTML = `<option value="">Todos (${label})</option>`;
+  arr.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v; opt.textContent = v;
+    sel.appendChild(opt);
+  });
 }
 
 function attachFilterEvents() {
@@ -156,120 +227,129 @@ function attachFilterEvents() {
   });
 }
 
+function resetFiltros() {
+  ["filtroCentro","filtroEmpresa","filtroObra","filtroFamilia"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  applyFilters();
+}
+
 function applyFilters() {
-  const centro = document.getElementById("filtroCentro").value || "";
-  const empresa = document.getElementById("filtroEmpresa").value || "";
-  const obra = document.getElementById("filtroObra").value || "";
-  const familia = document.getElementById("filtroFamilia").value || "";
+  const centro  = document.getElementById("filtroCentro").value;
+  const empresa = document.getElementById("filtroEmpresa").value;
+  const obra    = document.getElementById("filtroObra").value;
+  const familia = document.getElementById("filtroFamilia").value;
 
   filteredData = rawData.filter(r =>
-    (!centro  || r.Centro  === centro) &&
+    (!centro  || r.Centro  === centro)  &&
     (!empresa || r.Empresa === empresa) &&
-    (!obra    || r.Obra    === obra) &&
+    (!obra    || r.Obra    === obra)    &&
     (!familia || r.Familia === familia)
   );
 
+  renderAll();
+}
+
+// ── Render ─────────────────────────────────────────────
+function renderAll() {
   updateKPIs();
+  updateCharts();
   renderTable();
-  initCharts();
 }
 
 function updateKPIs() {
-  const toneladas = filteredData
-    .filter(r => r.Unidades === "T")
-    .reduce((s, r) => s + (Number(r.Cantidad) || 0), 0);
+  let ton = 0, uni = 0, imp = 0;
+  const albSet = new Set();
 
-  const importe = filteredData
-    .reduce((s, r) => s + (Number(r.Importe) || 0), 0);
+  filteredData.forEach(r => {
+    const cant = Number(r.Cantidad) || 0;
+    imp += Number(r.Importe) || 0;
+    if (r.Unidades === "T")  ton += cant;
+    if (r.Unidades === "UN") uni += cant;
+    if (r.Albarán || r.Albaran) albSet.add(r.Albarán || r.Albaran);
+  });
 
-  document.getElementById("kpiToneladas").textContent = toneladas.toFixed(2);
-  document.getElementById("kpiImporte").textContent = importe.toFixed(2) + " €";
-  document.getElementById("kpiAlbaranes").textContent = filteredData.length;
-  document.getElementById("kpiTicketMedio").textContent =
-    filteredData.length ? (importe / filteredData.length).toFixed(2) + " €" : "0 €";
+  document.getElementById("kpiToneladas").textContent = ton.toLocaleString("es-ES", {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById("kpiUnidades").textContent  = uni.toLocaleString("es-ES", {maximumFractionDigits:0});
+  document.getElementById("kpiImporte").textContent   = imp.toLocaleString("es-ES", {minimumFractionDigits:2, maximumFractionDigits:2}) + " €";
+  document.getElementById("kpiAlbaranes").textContent = albSet.size || filteredData.length;
+}
+
+function updateCharts() {
+  const mapT = {}, mapI = {};
+
+  filteredData.forEach(r => {
+    const f = r.Fecha; if (!f) return;
+    const imp = Number(r.Importe) || 0;
+    mapI[f] = (mapI[f] || 0) + imp;
+    if (r.Unidades === "T") {
+      mapT[f] = (mapT[f] || 0) + (Number(r.Cantidad) || 0);
+    }
+  });
+
+  const labT = Object.keys(mapT), datT = Object.values(mapT);
+  const labI = Object.keys(mapI), datI = Object.values(mapI);
+
+  const chartOpts = (color) => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    plugins: { legend: { labels: { color:"#c5c6c7" } } },
+    scales: {
+      x: { ticks: { color:"#c5c6c7", maxTicksLimit:12 }, grid: { color:"#ffffff11" } },
+      y: { ticks: { color:"#c5c6c7" }, grid: { color:"#ffffff11" } }
+    }
+  });
+
+  if (chartT) { chartT.data.labels = labT; chartT.data.datasets[0].data = datT; chartT.update(); }
+  else {
+    chartT = new Chart(document.getElementById("chartToneladasDia"), {
+      type:"line",
+      data:{ labels:labT, datasets:[{ label:"Toneladas", data:datT, borderColor:"#66fcf1", backgroundColor:"rgba(102,252,241,0.1)", tension:0.2, pointRadius:2 }]},
+      options: chartOpts("#66fcf1")
+    });
+  }
+
+  if (chartI) { chartI.data.labels = labI; chartI.data.datasets[0].data = datI; chartI.update(); }
+  else {
+    chartI = new Chart(document.getElementById("chartImporteDia"), {
+      type:"line",
+      data:{ labels:labI, datasets:[{ label:"Importe", data:datI, borderColor:"#45a29e", backgroundColor:"rgba(69,162,158,0.1)", tension:0.2, pointRadius:2 }]},
+      options: chartOpts("#45a29e")
+    });
+  }
 }
 
 function renderTable() {
+  const MAX = 500;
   const tbody = document.getElementById("tablaBody");
-  tbody.innerHTML = "";
-  filteredData.forEach(r => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${r.Fecha || ""}</td>
-        <td>${r.Albaran || r.Albarán || ""}</td>
-        <td>${r.Obra || ""}</td>
-        <td>${r.Centro || ""}</td>
-        <td>${r.Articulo || r.Artículo || ""}</td>
-        <td>${r.Familia || ""}</td>
-        <td>${r.Cantidad || 0}</td>
-        <td>${r.Unidades || ""}</td>
-        <td>${r.Importe || 0}</td>
-        <td>${r.Empresa || ""}</td>
-      </tr>`;
-  });
-}
+  const rows = filteredData.slice(0, MAX);
 
-let chartT = null;
-let chartI = null;
+  document.getElementById("tablaInfo").textContent =
+    filteredData.length > MAX
+      ? `Mostrando ${MAX} de ${filteredData.length} filas`
+      : `${filteredData.length} filas`;
 
-function initCharts() {
-  const ctx1 = document.getElementById("chartToneladasDia");
-  const ctx2 = document.getElementById("chartImporteDia");
+  const html = rows.map(r => {
+    const und = r.Unidades === "T" ? `<span class="badge-t">T</span>` :
+                r.Unidades === "UN" ? `<span class="badge-un">UN</span>` :
+                (r.Unidades || "");
+    return `<tr>
+      <td>${r.Fecha||""}</td>
+      <td>${r.Albarán||r.Albaran||""}</td>
+      <td>${r.Centro||""}</td>
+      <td>${r.Obra||""}</td>
+      <td>${r.Articulo||r.Artículo||""}</td>
+      <td>${r.Familia||""}</td>
+      <td>${r.Cantidad||0}</td>
+      <td>${und}</td>
+      <td>${Number(r.Importe||0).toLocaleString("es-ES",{minimumFractionDigits:2})}</td>
+      <td>${r.Empresa||""}</td>
+    </tr>`;
+  }).join("");
 
-  const mapT = {};
-  const mapI = {};
-
-  filteredData.forEach(r => {
-    const fecha = r.Fecha;
-    if (!fecha) return;
-    const cant = Number(r.Cantidad) || 0;
-    const imp  = Number(r.Importe) || 0;
-
-    if (r.Unidades === "T") {
-      mapT[fecha] = (mapT[fecha] || 0) + cant;
-    }
-    mapI[fecha] = (mapI[fecha] || 0) + imp;
-  });
-
-  const labelsT = Object.keys(mapT);
-  const dataT   = Object.values(mapT);
-  const labelsI = Object.keys(mapI);
-  const dataI   = Object.values(mapI);
-
-  if (chartT) chartT.destroy();
-  if (chartI) chartI.destroy();
-
-  chartT = new Chart(ctx1, {
-    type: "line",
-    data: {
-      labels: labelsT,
-      datasets: [{
-        label: "Toneladas",
-        data: dataT,
-        borderColor: "#66fcf1",
-        backgroundColor: "rgba(102,252,241,0.15)",
-        tension: 0.2
-      }]
-    },
-    options: { plugins:{legend:{labels:{color:"#c5c6c7"}}}, scales:{x:{ticks:{color:"#c5c6c7"}},y:{ticks:{color:"#c5c6c7"}}}}
-  });
-
-  chartI = new Chart(ctx2, {
-    type: "line",
-    data: {
-      labels: labelsI,
-      datasets: [{
-        label: "Importe",
-        data: dataI,
-        borderColor: "#45a29e",
-        backgroundColor: "rgba(69,162,158,0.15)",
-        tension: 0.2
-      }]
-    },
-    options: { plugins:{legend:{labels:{color:"#c5c6c7"}}}, scales:{x:{ticks:{color:"#c5c6c7"}},y:{ticks:{color:"#c5c6c7"}}}}
-  });
+  tbody.innerHTML = html;
 }
 </script>
-
 </body>
 </html>
