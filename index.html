@@ -12,11 +12,24 @@
     body { background:#0b0c10; color:#c5c6c7; font-family:system-ui; margin:0; }
 
     /* LOGIN */
-    #loginScreen { position:fixed; inset:0; background:#0b0c10; display:flex; align-items:center; justify-content:center; z-index:9999; }
-    .login-box { background:#1f2833; border:1px solid #45a29e; border-radius:12px; padding:40px; width:320px; text-align:center; }
+    #loginScreen {
+      position:fixed; inset:0; background:#0b0c10;
+      display:flex; align-items:center; justify-content:center; z-index:9999;
+    }
+    .login-box {
+      background:#1f2833; border:1px solid #45a29e; border-radius:12px;
+      padding:40px; width:320px; text-align:center;
+    }
     .login-box h2 { color:#66fcf1; margin-bottom:24px; font-size:1.4rem; }
-    .login-box input { width:100%; padding:10px; margin-bottom:12px; box-sizing:border-box; background:#0b0c10; border:1px solid #45a29e55; color:#c5c6c7; border-radius:6px; font-size:1rem; }
-    .login-box button { width:100%; padding:10px; background:#45a29e; border:none; border-radius:6px; color:#0b0c10; font-weight:700; font-size:1rem; cursor:pointer; }
+    .login-box input {
+      width:100%; padding:10px; margin-bottom:12px; box-sizing:border-box;
+      background:#0b0c10; border:1px solid #45a29e55; color:#c5c6c7;
+      border-radius:6px; font-size:1rem;
+    }
+    .login-box button {
+      width:100%; padding:10px; background:#45a29e; border:none;
+      border-radius:6px; color:#0b0c10; font-weight:700; font-size:1rem; cursor:pointer;
+    }
     .login-box button:hover { background:#66fcf1; }
     #loginError { color:#e74c3c; font-size:0.85rem; margin-top:8px; display:none; }
 
@@ -25,10 +38,8 @@
     .navbar { background:#1f2833; border-bottom:1px solid #45a29e33; }
     .card { background:#1f2833; border:1px solid #45a29e33; }
     .kpi-card { background:#1f2833; border:1px solid #45a29e; border-radius:8px; padding:12px 16px; }
-    .kpi-value { font-size:1.8rem; font-weight:600; color:#66fcf1; }
-    .kpi-label { font-size:0.8rem; text-transform:uppercase; color:#45a29e; }
-    .kpi-sub { font-size:0.78rem; color:#888; margin-top:2px; }
-    .kpi-up { color:#2ecc71; } .kpi-down { color:#e74c3c; }
+    .kpi-value { font-size:2rem; font-weight:600; color:#66fcf1; }
+    .kpi-label { font-size:0.85rem; text-transform:uppercase; color:#45a29e; }
     .chart-container { height:260px; }
     .table thead th { background:#1f2833; color:#66fcf1; position:sticky; top:0; }
     .form-select { background:#0b0c10; border:1px solid #45a29e55; color:#c5c6c7; }
@@ -36,7 +47,6 @@
     #loadingMsg { text-align:center; padding:40px; color:#45a29e; display:none; }
     .badge-t  { background:#66fcf122; color:#66fcf1; border:1px solid #66fcf144; border-radius:4px; padding:1px 6px; font-size:0.75rem; }
     .badge-un { background:#45a29e22; color:#45a29e; border:1px solid #45a29e44; border-radius:4px; padding:1px 6px; font-size:0.75rem; }
-    .section-title { color:#45a29e; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; margin:16px 0 8px; }
   </style>
 </head>
 <body>
@@ -66,26 +76,16 @@
     <div id="loadingMsg"><i class="fa-solid fa-spinner fa-spin fa-2x mb-2"></i><br>Cargando datos...</div>
 
     <div id="mainContent" style="display:none">
-
-      <!-- KPIs PRINCIPALES -->
-      <p class="section-title">Resumen global</p>
+      <!-- KPIs -->
       <div class="row g-3 mb-3">
         <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label"><i class="fa-solid fa-weight-hanging me-1"></i>Toneladas (T)</div><div id="kpiToneladas" class="kpi-value">0</div></div></div>
         <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label"><i class="fa-solid fa-boxes-stacked me-1"></i>Unidades (UN)</div><div id="kpiUnidades" class="kpi-value">0</div></div></div>
+        <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label"><i class="fa-solid fa-bag-shopping me-1"></i>Sacos (SAC)</div><div id="kpiSacos" class="kpi-value">0</div></div></div>
         <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label"><i class="fa-solid fa-euro-sign me-1"></i>Importe</div><div id="kpiImporte" class="kpi-value">0 €</div></div></div>
         <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label"><i class="fa-solid fa-receipt me-1"></i>Albaranes</div><div id="kpiAlbaranes" class="kpi-value">0</div></div></div>
       </div>
 
-      <!-- KPIs MES ACTUAL VS ANTERIOR -->
-      <p class="section-title">Mes actual vs mes anterior</p>
-      <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label">Toneladas mes actual</div><div id="kpiTonMes" class="kpi-value">0</div><div id="kpiTonMesDelta" class="kpi-sub"></div></div></div>
-        <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label">Toneladas mes anterior</div><div id="kpiTonMesAnt" class="kpi-value">0</div></div></div>
-        <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label">Importe mes actual</div><div id="kpiImpMes" class="kpi-value">0 €</div><div id="kpiImpMesDelta" class="kpi-sub"></div></div></div>
-        <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label">Importe mes anterior</div><div id="kpiImpMesAnt" class="kpi-value">0 €</div></div></div>
-      </div>
-
-      <!-- FILTROS -->
+      <!-- Filtros -->
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <span><i class="fa-solid fa-filter me-1"></i>Filtros</span>
@@ -93,54 +93,41 @@
         </div>
         <div class="card-body">
           <div class="row g-2">
-            <div class="col-6 col-md-2"><select id="filtroMes"         class="form-select form-select-sm"></select></div>
-            <div class="col-6 col-md-2"><select id="filtroCentro"      class="form-select form-select-sm"></select></div>
-            <div class="col-6 col-md-2"><select id="filtroEmpresa"     class="form-select form-select-sm"></select></div>
-            <div class="col-6 col-md-2"><select id="filtroTransportista" class="form-select form-select-sm"></select></div>
-            <div class="col-6 col-md-2"><select id="filtroArticulo"    class="form-select form-select-sm"></select></div>
-            <div class="col-6 col-md-2"><select id="filtroMatricula"   class="form-select form-select-sm"></select></div>
+            <div class="col-6 col-md-3"><select id="filtroCentro"       class="form-select form-select-sm"></select></div>
+            <div class="col-6 col-md-3"><select id="filtroEmpresa"      class="form-select form-select-sm"></select></div>
+            <div class="col-6 col-md-3"><select id="filtroMatricula"    class="form-select form-select-sm"></select></div>
+            <div class="col-6 col-md-3"><select id="filtroObra"         class="form-select form-select-sm"></select></div>
+            <div class="col-6 col-md-3"><select id="filtroTransportista" class="form-select form-select-sm"></select></div>
+            <div class="col-6 col-md-3"><select id="filtroUnidades"     class="form-select form-select-sm"></select></div>
           </div>
         </div>
       </div>
 
-      <!-- GRÁFICOS FILA 1 -->
-      <p class="section-title">Evolución temporal</p>
+      <!-- Gráficos -->
       <div class="row g-3 mb-3">
         <div class="col-lg-6"><div class="card"><div class="card-header">Toneladas por día</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartT"></canvas></div></div></div></div>
         <div class="col-lg-6"><div class="card"><div class="card-header">Importe por día</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartI"></canvas></div></div></div></div>
       </div>
 
-      <!-- GRÁFICOS FILA 2 -->
-      <p class="section-title">Análisis</p>
-      <div class="row g-3 mb-3">
-        <div class="col-lg-4"><div class="card"><div class="card-header">Toneladas por Centro</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartCentro"></canvas></div></div></div></div>
-        <div class="col-lg-4"><div class="card"><div class="card-header">Top 10 Obras por Importe</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartObras"></canvas></div></div></div></div>
-        <div class="col-lg-4"><div class="card"><div class="card-header">Granel vs Envasado (T)</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartFormato"></canvas></div></div></div></div>
-      </div>
-
-      <!-- TABLA -->
+      <!-- Tabla -->
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <span>Detalle</span><span id="tablaInfo" class="text-secondary small"></span>
         </div>
         <div class="card-body p-0 table-responsive" style="max-height:400px;overflow-y:auto;">
           <table class="table table-dark table-sm table-hover mb-0">
-            <thead><tr><th>Fecha</th><th>Albarán</th><th>Centro</th><th>Obra</th><th>Artículo</th><th>Formato</th><th>Matrícula</th><th>Cantidad</th><th>Und</th><th>Importe</th><th>Empresa</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Albarán</th><th>Centro</th><th>Obra</th><th>Artículo</th><th>Matrícula</th><th>Cantidad</th><th>Und</th><th>Importe</th><th>Empresa</th></tr></thead>
             <tbody id="tablaBody"></tbody>
           </table>
         </div>
       </div>
-
-    </div><!-- /mainContent -->
+    </div>
   </div>
 </div>
 
 <script>
 const EXCEL_URL = "https://docs.google.com/spreadsheets/d/1gAcHAvF1jGVEasiahCM5P3dUKKwfEU0DoR8HFwUDx_s/export?format=xlsx&gid=1514026503";
-let rawData = [], filteredData = [];
-let charts = {};
-
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let rawData = [], filteredData = [], cT = null, cI = null;
 
 // ── LOGIN ──────────────────────────────────────────────
 function checkLogin() {
@@ -149,15 +136,19 @@ function checkLogin() {
   if (u === 'cacsa' && p === '1954*') {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
-    sessionStorage.setItem('auth','ok');
+    sessionStorage.setItem('auth', 'ok');
     cargarExcel();
   } else {
     document.getElementById('loginError').style.display = 'block';
   }
 }
-document.addEventListener('keydown', e => { if (e.key==='Enter') checkLogin(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkLogin();
+});
+
 window.addEventListener('DOMContentLoaded', () => {
-  if (sessionStorage.getItem('auth')==='ok') {
+  if (sessionStorage.getItem('auth') === 'ok') {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     cargarExcel();
@@ -174,43 +165,28 @@ async function cargarExcel() {
     rawData   = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
 
     const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s/g,'').toLowerCase();
-    const keys = Object.keys(rawData[0]||{});
-    const matrKey  = keys.find(k => norm(k)==='matricula');
-    const transKey = keys.find(k => norm(k)==='transportista');
-    const artKey   = keys.find(k => norm(k)==='articulo');
-    const fmtKey   = keys.find(k => norm(k)==='formato');
+    const keys = Object.keys(rawData[0] || {});
+    const matrKey = keys.find(k => norm(k) === 'matricula');
 
     rawData.forEach(r => {
       // Fecha
-      if (r.Fecha instanceof Date) {
-        r._fecha = r.Fecha;
-        r.Fecha  = r.Fecha.toLocaleDateString('es-ES');
-      } else if (typeof r.Fecha === 'number') {
+      if (r.Fecha instanceof Date) r.Fecha = r.Fecha.toLocaleDateString('es-ES');
+      else if (typeof r.Fecha === 'number') {
         const d = XLSX.SSF.parse_date_code(r.Fecha);
-        r._fecha = new Date(d.y, d.m-1, d.d);
-        r.Fecha  = `${String(d.d).padStart(2,'0')}/${String(d.m).padStart(2,'0')}/${d.y}`;
-      } else {
-        // Intentar parsear dd/mm/yyyy
-        const parts = String(r.Fecha).split('/');
-        if (parts.length===3) r._fecha = new Date(parts[2], parts[1]-1, parts[0]);
+        r.Fecha = `${String(d.d).padStart(2,'0')}/${String(d.m).padStart(2,'0')}/${d.y}`;
       }
-      r._mes = r._fecha ? `${MESES[r._fecha.getMonth()]} ${r._fecha.getFullYear()}` : '';
-      r._mesNum = r._fecha ? r._fecha.getFullYear()*100 + r._fecha.getMonth() : 0;
-
-      // Campos con espacios
-      ['Unidades','Centro','Empresa','Obra','Nombre obra','Estado'].forEach(k => {
-        if (typeof r[k]==='string') r[k]=r[k].trim();
+      // Trim espacios
+      ['Unidades','Centro','Empresa','Obra','Nombre obra','Artículo','Articulo','Transportista'].forEach(k => {
+        if (typeof r[k] === 'string') r[k] = r[k].trim();
       });
-      r._mat   = matrKey  ? String(r[matrKey] ||'').trim() : '';
-      r._trans = transKey ? String(r[transKey]||'').trim() : '';
-      r._art   = artKey   ? String(r[artKey]  ||'').trim() : '';
-      r._fmt   = fmtKey   ? String(r[fmtKey]  ||'').trim() : '';
-
-      if (typeof r.Cantidad==='string') r.Cantidad = r.Cantidad.replace(',','.');
-      if (typeof r.Importe ==='string') r.Importe  = r.Importe.replace(',','.');
+      // Matrícula
+      r._mat = matrKey ? String(r[matrKey] || '').trim() : '';
+      // Números
+      if (typeof r.Cantidad === 'string') r.Cantidad = r.Cantidad.replace(',','.');
+      if (typeof r.Importe  === 'string') r.Importe  = r.Importe.replace(',','.');
     });
 
-    document.getElementById('lastUpdate').textContent = 'Actualizado: '+new Date().toLocaleString('es-ES');
+    document.getElementById('lastUpdate').textContent = 'Actualizado: ' + new Date().toLocaleString('es-ES');
     filteredData = [...rawData];
     iniciar();
   } catch(e) {
@@ -229,129 +205,82 @@ function iniciar() {
 
 // ── FILTROS ────────────────────────────────────────────
 function populateFilters() {
-  const s = { mes:new Set(), centro:new Set(), empresa:new Set(), trans:new Set(), art:new Set(), mat:new Set() };
-  // Ordenar meses cronológicamente
-  const mesOrder = {};
+  const s = { centro:new Set(), empresa:new Set(), mat:new Set(), obra:new Set(), trans:new Set(), und:new Set() };
   rawData.forEach(r => {
-    if (r._mes) { s.mes.add(r._mes); mesOrder[r._mes] = r._mesNum; }
-    if (r.Centro)  s.centro.add(r.Centro);
+    if (r.Centro) s.centro.add(r.Centro);
     if (r.Empresa) s.empresa.add(r.Empresa);
-    if (r._trans)  s.trans.add(r._trans);
-    if (r._art)    s.art.add(r._art);
-    if (r._mat)    s.mat.add(r._mat);
+    if (r._mat) s.mat.add(r._mat);
+    if (r['Nombre obra']) s.obra.add(r['Nombre obra']);
+    if (r.Transportista) s.trans.add(r.Transportista);
+    if (r.Unidades) s.und.add(r.Unidades);
   });
-  const mesesOrdenados = [...s.mes].sort((a,b) => mesOrder[a]-mesOrder[b]);
-  fillSelect('filtroMes',          mesesOrdenados,         'Mes');
-  fillSelect('filtroCentro',       [...s.centro].sort(),   'Centro');
-  fillSelect('filtroEmpresa',      [...s.empresa].sort(),  'Empresa');
-  fillSelect('filtroTransportista',[...s.trans].sort(),    'Transportista');
-  fillSelect('filtroArticulo',     [...s.art].sort(),      'Artículo');
-  fillSelect('filtroMatricula',    [...s.mat].sort(),      'Matrícula');
+  fillSelect('filtroCentro',        [...s.centro].sort(), 'Centro');
+  fillSelect('filtroEmpresa',       [...s.empresa].sort(),'Empresa');
+  fillSelect('filtroMatricula',     [...s.mat].sort(),    'Matrícula');
+  fillSelect('filtroObra',          [...s.obra].sort(),   'Nombre obra');
+  fillSelect('filtroTransportista', [...s.trans].sort(),  'Transportista');
+  fillSelect('filtroUnidades',      [...s.und].sort(),    'Unidades');
 }
 
 function fillSelect(id, arr, label) {
   const sel = document.getElementById(id);
   sel.innerHTML = `<option value="">Todos (${label})</option>`;
-  arr.forEach(v => { const o=document.createElement('option'); o.value=o.textContent=v; sel.appendChild(o); });
+  arr.forEach(v => { const o = document.createElement('option'); o.value = o.textContent = v; sel.appendChild(o); });
 }
 
 function attachEvents() {
-  ['filtroMes','filtroCentro','filtroEmpresa','filtroTransportista','filtroArticulo','filtroMatricula'].forEach(id =>
+  ['filtroCentro','filtroEmpresa','filtroMatricula','filtroObra','filtroTransportista','filtroUnidades'].forEach(id =>
     document.getElementById(id).addEventListener('change', applyFilters)
   );
 }
 
 function resetFiltros() {
-  ['filtroMes','filtroCentro','filtroEmpresa','filtroTransportista','filtroArticulo','filtroMatricula'].forEach(id =>
-    document.getElementById(id).value=''
+  ['filtroCentro','filtroEmpresa','filtroMatricula','filtroObra','filtroTransportista','filtroUnidades'].forEach(id =>
+    document.getElementById(id).value = ''
   );
   applyFilters();
 }
 
 function applyFilters() {
-  const mes   = document.getElementById('filtroMes').value;
-  const c     = document.getElementById('filtroCentro').value;
-  const e     = document.getElementById('filtroEmpresa').value;
-  const tr    = document.getElementById('filtroTransportista').value;
-  const art   = document.getElementById('filtroArticulo').value;
-  const mat   = document.getElementById('filtroMatricula').value;
+  const c = document.getElementById('filtroCentro').value;
+  const e = document.getElementById('filtroEmpresa').value;
+  const m = document.getElementById('filtroMatricula').value;
+  const o = document.getElementById('filtroObra').value;
+  const t = document.getElementById('filtroTransportista').value;
+  const u = document.getElementById('filtroUnidades').value;
   filteredData = rawData.filter(r =>
-    (!mes || r._mes===mes) &&
-    (!c   || r.Centro===c) &&
-    (!e   || r.Empresa===e) &&
-    (!tr  || r._trans===tr) &&
-    (!art || r._art===art) &&
-    (!mat || r._mat===mat)
+    (!c || r.Centro === c) &&
+    (!e || r.Empresa === e) &&
+    (!m || r._mat === m) &&
+    (!o || r['Nombre obra'] === o) &&
+    (!t || r.Transportista === t) &&
+    (!u || r.Unidades === u)
   );
   renderAll();
 }
 
 // ── RENDER ─────────────────────────────────────────────
-function renderAll() { updateKPIs(); updateKPIsMes(); updateCharts(); renderTable(); }
+function renderAll() { updateKPIs(); updateCharts(); renderTable(); }
 
 function updateKPIs() {
-  let ton=0, uni=0, imp=0; const alb=new Set();
+  let ton=0, uni=0, sac=0, imp=0; const alb=new Set();
   filteredData.forEach(r => {
-    const c=Number(r.Cantidad)||0; imp+=Number(r.Importe)||0;
-    if(r.Unidades==='T') ton+=c; if(r.Unidades==='UN') uni+=c;
-    const a=r.Albarán||r.Albaran; if(a) alb.add(a);
+    const c = Number(r.Cantidad)||0;
+    imp += Number(r.Importe)||0;
+    const u = (r.Unidades||'').trim();
+    if (u==='T')   ton+=c;
+    if (u==='UN')  uni+=c;
+    if (u==='SAC') sac+=c;
+    const a = r.Albarán||r.Albaran; if(a) alb.add(a);
   });
   document.getElementById('kpiToneladas').textContent = ton.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById('kpiUnidades').textContent  = uni.toLocaleString('es-ES',{maximumFractionDigits:0});
+  document.getElementById('kpiSacos').textContent     = sac.toLocaleString('es-ES',{maximumFractionDigits:0});
   document.getElementById('kpiImporte').textContent   = imp.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
-  document.getElementById('kpiAlbaranes').textContent = alb.size||filteredData.length;
+  document.getElementById('kpiAlbaranes').textContent = alb.size || filteredData.length;
 }
-
-function updateKPIsMes() {
-  // Obtener meses únicos ordenados del dataset filtrado
-  const mesesMap = {};
-  filteredData.forEach(r => { if(r._mes) mesesMap[r._mesNum]=r._mes; });
-  const mesesOrdenados = Object.keys(mesesMap).map(Number).sort((a,b)=>a-b);
-  if (mesesOrdenados.length < 1) return;
-
-  const meActualNum  = mesesOrdenados[mesesOrdenados.length-1];
-  const meAnteriorNum= mesesOrdenados.length>1 ? mesesOrdenados[mesesOrdenados.length-2] : null;
-
-  let tonAct=0, impAct=0, tonAnt=0, impAnt=0;
-  filteredData.forEach(r => {
-    const c=Number(r.Cantidad)||0, i=Number(r.Importe)||0;
-    if(r._mesNum===meActualNum)  { if(r.Unidades==='T') tonAct+=c; impAct+=i; }
-    if(r._mesNum===meAnteriorNum){ if(r.Unidades==='T') tonAnt+=c; impAnt+=i; }
-  });
-
-  const fmt  = (v,dec=2) => v.toLocaleString('es-ES',{minimumFractionDigits:dec,maximumFractionDigits:dec});
-  const delta = (act,ant,unit='') => {
-    if(!ant) return '';
-    const pct = ((act-ant)/ant*100).toFixed(1);
-    const arrow = act>=ant ? '▲' : '▼';
-    const cls   = act>=ant ? 'kpi-up' : 'kpi-down';
-    return `<span class="${cls}">${arrow} ${Math.abs(pct)}% vs anterior</span>`;
-  };
-
-  document.getElementById('kpiTonMes').textContent    = fmt(tonAct);
-  document.getElementById('kpiTonMesAnt').textContent = fmt(tonAnt);
-  document.getElementById('kpiImpMes').textContent    = fmt(impAct)+' €';
-  document.getElementById('kpiImpMesAnt').textContent = fmt(impAnt)+' €';
-  document.getElementById('kpiTonMesDelta').innerHTML = delta(tonAct,tonAnt);
-  document.getElementById('kpiImpMesDelta').innerHTML = delta(impAct,impAnt);
-}
-
-function destroyChart(key) { if(charts[key]){charts[key].destroy();charts[key]=null;} }
 
 function updateCharts() {
-  const opts = () => ({
-    responsive:true, maintainAspectRatio:false, animation:false,
-    plugins:{legend:{labels:{color:'#c5c6c7'}}},
-    scales:{x:{ticks:{color:'#c5c6c7',maxTicksLimit:12},grid:{color:'#ffffff11'}},y:{ticks:{color:'#c5c6c7'},grid:{color:'#ffffff11'}}}
-  });
-  const optsNoX = () => ({
-    responsive:true, maintainAspectRatio:false, animation:false,
-    indexAxis:'y',
-    plugins:{legend:{display:false}},
-    scales:{x:{ticks:{color:'#c5c6c7'},grid:{color:'#ffffff11'}},y:{ticks:{color:'#c5c6c7',font:{size:10}}}}
-  });
-
-  // 1. Toneladas por día
   const mT={}, mI={};
   filteredData.forEach(r => {
     const f=String(r.Fecha||'').trim(); if(!f) return;
@@ -359,46 +288,21 @@ function updateCharts() {
     mI[f]=(mI[f]||0)+imp;
     if(r.Unidades==='T') mT[f]=(mT[f]||0)+(Number(String(r.Cantidad||0).replace(',','.'))||0);
   });
-  destroyChart('T');
-  charts.T = new Chart(document.getElementById('chartT'),{type:'line',data:{labels:Object.keys(mT),datasets:[{label:'Toneladas',data:Object.values(mT),borderColor:'#66fcf1',backgroundColor:'rgba(102,252,241,0.1)',tension:0.2,pointRadius:2}]},options:opts()});
-  destroyChart('I');
-  charts.I = new Chart(document.getElementById('chartI'),{type:'line',data:{labels:Object.keys(mI),datasets:[{label:'Importe',data:Object.values(mI),borderColor:'#45a29e',backgroundColor:'rgba(69,162,158,0.1)',tension:0.2,pointRadius:2}]},options:opts()});
-
-  // 2. Toneladas por Centro
-  const mC={};
-  filteredData.forEach(r => { if(r.Unidades==='T'&&r.Centro) mC[r.Centro]=(mC[r.Centro]||0)+(Number(r.Cantidad)||0); });
-  const cLabels=Object.keys(mC).sort((a,b)=>mC[b]-mC[a]);
-  destroyChart('Centro');
-  charts.Centro = new Chart(document.getElementById('chartCentro'),{type:'bar',data:{labels:cLabels,datasets:[{label:'Toneladas',data:cLabels.map(k=>mC[k]),backgroundColor:'#66fcf1aa',borderColor:'#66fcf1',borderWidth:1}]},options:{...opts(),indexAxis:'x',plugins:{legend:{display:false}}}});
-
-  // 3. Top 10 obras por importe
-  const mO={};
-  filteredData.forEach(r => { if(r['Nombre obra']||r.Obra) { const k=(r['Nombre obra']||r.Obra); mO[k]=(mO[k]||0)+(Number(r.Importe)||0); }});
-  const top10 = Object.entries(mO).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  destroyChart('Obras');
-  charts.Obras = new Chart(document.getElementById('chartObras'),{
-    type:'bar',
-    data:{labels:top10.map(x=>x[0].substring(0,30)),datasets:[{data:top10.map(x=>x[1]),backgroundColor:'#45a29eaa',borderColor:'#45a29e',borderWidth:1}]},
-    options:optsNoX()
+  const opts = () => ({ responsive:true, maintainAspectRatio:false, animation:false,
+    plugins:{legend:{labels:{color:'#c5c6c7'}}},
+    scales:{x:{ticks:{color:'#c5c6c7',maxTicksLimit:12},grid:{color:'#ffffff11'}},y:{ticks:{color:'#c5c6c7'},grid:{color:'#ffffff11'}}}
   });
-
-  // 4. Granel vs Envasado
-  const mF={};
-  filteredData.forEach(r => { if(r.Unidades==='T'&&r._fmt) mF[r._fmt]=(mF[r._fmt]||0)+(Number(r.Cantidad)||0); });
-  destroyChart('Formato');
-  charts.Formato = new Chart(document.getElementById('chartFormato'),{
-    type:'doughnut',
-    data:{labels:Object.keys(mF),datasets:[{data:Object.values(mF),backgroundColor:['#66fcf1aa','#45a29eaa','#c5c6c7aa','#e74c3caa'],borderColor:'#1f2833',borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{labels:{color:'#c5c6c7'},position:'bottom'}}}
-  });
+  if(cT){cT.destroy();cT=null;} if(cI){cI.destroy();cI=null;}
+  cT = new Chart(document.getElementById('chartT'),{type:'line',data:{labels:Object.keys(mT),datasets:[{label:'Toneladas',data:Object.values(mT),borderColor:'#66fcf1',backgroundColor:'rgba(102,252,241,0.1)',tension:0.2,pointRadius:2}]},options:opts()});
+  cI = new Chart(document.getElementById('chartI'),{type:'line',data:{labels:Object.keys(mI),datasets:[{label:'Importe',data:Object.values(mI),borderColor:'#45a29e',backgroundColor:'rgba(69,162,158,0.1)',tension:0.2,pointRadius:2}]},options:opts()});
 }
 
 function renderTable() {
   const MAX=500, rows=filteredData.slice(0,MAX);
-  document.getElementById('tablaInfo').textContent = filteredData.length>MAX?`Mostrando ${MAX} de ${filteredData.length}`:`${filteredData.length} filas`;
+  document.getElementById('tablaInfo').textContent = filteredData.length>MAX ? `Mostrando ${MAX} de ${filteredData.length}` : `${filteredData.length} filas`;
   document.getElementById('tablaBody').innerHTML = rows.map(r => {
-    const u=r.Unidades==='T'?'<span class="badge-t">T</span>':r.Unidades==='UN'?'<span class="badge-un">UN</span>':(r.Unidades||'');
-    return `<tr><td>${r.Fecha||''}</td><td>${r.Albarán||r.Albaran||''}</td><td>${r.Centro||''}</td><td>${r['Nombre obra']||r.Obra||''}</td><td>${r._art||''}</td><td>${r._fmt||''}</td><td>${r._mat||''}</td><td>${r.Cantidad||0}</td><td>${u}</td><td>${Number(r.Importe||0).toLocaleString('es-ES',{minimumFractionDigits:2})}</td><td>${r.Empresa||''}</td></tr>`;
+    const u = r.Unidades==='T'?'<span class="badge-t">T</span>':r.Unidades==='UN'?'<span class="badge-un">UN</span>':(r.Unidades||'');
+    return `<tr><td>${r.Fecha||''}</td><td>${r.Albarán||r.Albaran||''}</td><td>${r.Centro||''}</td><td>${r['Nombre obra']||r.Obra||''}</td><td>${r.Artículo||r.Articulo||''}</td><td>${r._mat||''}</td><td>${r.Cantidad||0}</td><td>${u}</td><td>${Number(r.Importe||0).toLocaleString('es-ES',{minimumFractionDigits:2})}</td><td>${r.Empresa||''}</td></tr>`;
   }).join('');
 }
 </script>
