@@ -314,10 +314,10 @@ function renderTable() {
   const rows = filteredData.slice(inicio, inicio + POR_PAGINA);
 
   document.getElementById('tablaInfo').textContent = `${total.toLocaleString('es-ES')} filas`;
-  document.getElementById('paginaInfo').textContent = totalPags > 1 ? `Página ${paginaActual+1} de ${totalPags}` : '';
+  document.getElementById('paginaInfo').textContent = `Página ${paginaActual+1} de ${totalPags} (${rows.length} filas)`;
   document.getElementById('btnPrev').disabled = paginaActual === 0;
   document.getElementById('btnNext').disabled = paginaActual >= totalPags - 1;
-  document.getElementById('paginacionBar').style.display = totalPags > 1 ? 'flex' : 'none';
+  document.getElementById('paginacionBar').style.display = 'flex';
 
   document.getElementById('tablaBody').innerHTML = rows.map(r => {
     const u = r.Unidades==='T'?'<span class="badge-t">T</span>':r.Unidades==='UN'?'<span class="badge-un">UN</span>':(r.Unidades||'');
