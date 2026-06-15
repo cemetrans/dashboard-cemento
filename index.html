@@ -120,6 +120,11 @@
             <tbody id="tablaBody"></tbody>
           </table>
         </div>
+        <div class="card-footer d-flex justify-content-between align-items-center py-2" id="paginacionBar">
+          <button class="btn btn-sm btn-outline-info" id="btnPrev" onclick="cambiarPagina(-1)" disabled>&#8592; Anterior</button>
+          <span id="paginaInfo" class="text-secondary small"></span>
+          <button class="btn btn-sm btn-outline-info" id="btnNext" onclick="cambiarPagina(1)">Siguiente &#8594;</button>
+        </div>
       </div>
     </div>
   </div>
@@ -242,6 +247,7 @@ function resetFiltros() {
 }
 
 function applyFilters() {
+  paginaActual = 0;
   const c = document.getElementById('filtroCentro').value;
   const e = document.getElementById('filtroEmpresa').value;
   const m = document.getElementById('filtroMatricula').value;
@@ -297,13 +303,32 @@ function updateCharts() {
   cI = new Chart(document.getElementById('chartI'),{type:'line',data:{labels:Object.keys(mI),datasets:[{label:'Importe',data:Object.values(mI),borderColor:'#45a29e',backgroundColor:'rgba(69,162,158,0.1)',tension:0.2,pointRadius:2}]},options:opts()});
 }
 
+let paginaActual = 0;
+const POR_PAGINA = 500;
+
 function renderTable() {
-  const MAX=500, rows=filteredData.slice(0,MAX);
-  document.getElementById('tablaInfo').textContent = filteredData.length>MAX ? `Mostrando ${MAX} de ${filteredData.length}` : `${filteredData.length} filas`;
+  const total = filteredData.length;
+  const totalPags = Math.ceil(total / POR_PAGINA);
+  if (paginaActual >= totalPags) paginaActual = Math.max(0, totalPags - 1);
+  const inicio = paginaActual * POR_PAGINA;
+  const rows = filteredData.slice(inicio, inicio + POR_PAGINA);
+
+  document.getElementById('tablaInfo').textContent = `${total.toLocaleString('es-ES')} filas`;
+  document.getElementById('paginaInfo').textContent = totalPags > 1 ? `Página ${paginaActual+1} de ${totalPags}` : '';
+  document.getElementById('btnPrev').disabled = paginaActual === 0;
+  document.getElementById('btnNext').disabled = paginaActual >= totalPags - 1;
+  document.getElementById('paginacionBar').style.display = totalPags > 1 ? 'flex' : 'none';
+
   document.getElementById('tablaBody').innerHTML = rows.map(r => {
     const u = r.Unidades==='T'?'<span class="badge-t">T</span>':r.Unidades==='UN'?'<span class="badge-un">UN</span>':(r.Unidades||'');
     return `<tr><td>${r.Fecha||''}</td><td>${r.Albarán||r.Albaran||''}</td><td>${r.Centro||''}</td><td>${r['Nombre obra']||r.Obra||''}</td><td>${r.Artículo||r.Articulo||''}</td><td>${r._mat||''}</td><td>${r.Cantidad||0}</td><td>${u}</td><td>${Number(r.Importe||0).toLocaleString('es-ES',{minimumFractionDigits:2})}</td><td>${r.Empresa||''}</td></tr>`;
   }).join('');
+}
+
+function cambiarPagina(dir) {
+  paginaActual += dir;
+  document.getElementById('tablaBody').parentElement.scrollTop = 0;
+  renderTable();
 }
 </script>
 </body>
