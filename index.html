@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body { background:#0b0c10; color:#c5c6c7; font-family:system-ui; margin:0; }
     #loginScreen { position:fixed; inset:0; background:#0b0c10; display:flex; align-items:center; justify-content:center; z-index:9999; }
@@ -25,9 +26,16 @@
     .kpi-value { font-size:2rem; font-weight:600; color:#66fcf1; }
     .kpi-label { font-size:0.85rem; text-transform:uppercase; color:#45a29e; }
     .chart-container { height:260px; }
-    .table thead th { background:#1f2833; color:#66fcf1; position:sticky; top:0; z-index:1; }
-    .form-select { background:#0b0c10; border:1px solid #45a29e55; color:#c5c6c7; }
-    .form-select:focus { background:#0b0c10; color:#c5c6c7; border-color:#45a29e; box-shadow:none; }
+    .table thead th { background:#1f2833; color:#66fcf1; position:sticky; top:0; z-index:1; cursor:pointer; user-select:none; white-space:nowrap; }
+    .table thead th:hover { color:#66fcf1; background:#243140; }
+    .sort-icon { font-size:0.7em; opacity:0.4; margin-left:4px; }
+    .sort-icon.active { opacity:1; color:#66fcf1; }
+    .table tfoot td { position:sticky; bottom:0; background:#1f2833; color:#66fcf1; font-weight:600; border-top:2px solid #45a29e; white-space:nowrap; }
+    .form-select, .form-control { background:#0b0c10; border:1px solid #45a29e55; color:#c5c6c7; }
+    .form-select:focus, .form-control:focus { background:#0b0c10; color:#c5c6c7; border-color:#45a29e; box-shadow:none; }
+    .form-control::placeholder { color:#6b7280; }
+    .form-control[type=date]::-webkit-calendar-picker-indicator { filter:invert(1); cursor:pointer; }
+    .form-label { color:#45a29e; }
     #loadingMsg { text-align:center; padding:40px; color:#45a29e; display:none; }
     .badge-t   { background:#66fcf122; color:#66fcf1; border:1px solid #66fcf144; border-radius:4px; padding:1px 6px; font-size:0.75rem; }
     .badge-un  { background:#45a29e22; color:#45a29e; border:1px solid #45a29e44; border-radius:4px; padding:1px 6px; font-size:0.75rem; }
@@ -35,6 +43,12 @@
     .page-btn { background:#1f2833; border:1px solid #45a29e55; color:#c5c6c7; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.85rem; }
     .page-btn:hover, .page-btn.active { background:#45a29e; color:#0b0c10; border-color:#45a29e; }
     .page-btn:disabled { opacity:0.35; cursor:default; }
+    .btn-outline-info.active { background:#45a29e; color:#0b0c10; border-color:#45a29e; }
+    #updatingIndicator { display:none; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9998; display:none; align-items:center; justify-content:center; }
+    .modal-box { background:#1f2833; border:1px solid #45a29e; border-radius:12px; padding:24px; width:380px; max-height:80vh; overflow-y:auto; }
+    .modal-box h5 { color:#66fcf1; }
+    .pdf-col-check { width:48%; display:inline-block; margin-bottom:4px; }
   </style>
 </head>
 <body>
@@ -51,6 +65,23 @@
   </div>
 </div>
 
+<!-- MODAL CONFIGURAR PDF -->
+<div id="pdfModal" class="modal-overlay">
+  <div class="modal-box">
+    <h5><i class="fa-solid fa-file-pdf me-2"></i>Configurar PDF</h5>
+    <p class="text-secondary small mb-2">Elige las columnas a incluir:</p>
+    <div id="pdfColsList" class="mb-3"></div>
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="pdfIncluirGraficos" checked>
+      <label class="form-check-label small" for="pdfIncluirGraficos">Incluir gráficos</label>
+    </div>
+    <div class="d-flex justify-content-end gap-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="cerrarModalPDF()">Cancelar</button>
+      <button class="btn btn-sm btn-info" onclick="generarPDF()">Generar PDF</button>
+    </div>
+  </div>
+</div>
+
 <!-- DASHBOARD -->
 <div id="dashboard">
   <nav class="navbar navbar-dark px-3 py-2 d-flex justify-content-between align-items-center">
@@ -58,9 +89,15 @@
       <i class="fa-solid fa-chart-line me-2 text-info"></i>Dashboard Cemento
     </span>
     <div class="d-flex align-items-center gap-3">
+      <span id="updatingIndicator" class="text-info small">
+        <i class="fa-solid fa-circle-notch fa-spin me-1"></i>Actualizando...
+      </span>
       <span id="lastUpdate" class="text-secondary small"></span>
-      <button class="btn btn-sm btn-outline-info" onclick="cargarDatos()">
+      <button class="btn btn-sm btn-outline-info" id="btnActualizar" onclick="cargarDatos()">
         <i class="fa-solid fa-rotate-right me-1"></i>Actualizar
+      </button>
+      <button class="btn btn-sm btn-outline-danger" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket me-1"></i>Salir
       </button>
     </div>
   </nav>
@@ -90,13 +127,50 @@
             <div class="col-6 col-md-3"><select id="filtroMatricula" class="form-select form-select-sm"></select></div>
             <div class="col-6 col-md-3"><select id="filtroObra"      class="form-select form-select-sm"></select></div>
           </div>
+          <div class="row g-2 mt-2">
+            <div class="col-6 col-md-3">
+              <label class="form-label small mb-1">Desde</label>
+              <input type="date" id="filtroDesde" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small mb-1">Hasta</label>
+              <input type="date" id="filtroHasta" class="form-control form-control-sm">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Buscar</label>
+              <div class="position-relative">
+                <i class="fa-solid fa-magnifying-glass position-absolute" style="left:10px;top:8px;color:#45a29e;font-size:0.8rem;"></i>
+                <input type="text" id="filtroBusqueda" class="form-control form-control-sm ps-4" placeholder="Matrícula, obra, albarán, centro, empresa, artículo...">
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Gráficos -->
+      <!-- Gráficos temporales -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-secondary small"><i class="fa-solid fa-chart-line me-1"></i>Evolución temporal</span>
+        <select id="chartGroupMode" class="form-select form-select-sm" style="width:auto">
+          <option value="dia" selected>Por día</option>
+          <option value="semana">Por semana</option>
+          <option value="mes">Por mes</option>
+        </select>
+      </div>
       <div class="row g-3 mb-3">
-        <div class="col-lg-6"><div class="card"><div class="card-header">Toneladas por día</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartT"></canvas></div></div></div></div>
-        <div class="col-lg-6"><div class="card"><div class="card-header">Importe por día</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartI"></canvas></div></div></div></div>
+        <div class="col-lg-6"><div class="card"><div class="card-header" id="chartTTitle">Toneladas por día</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartT"></canvas></div></div></div></div>
+        <div class="col-lg-6"><div class="card"><div class="card-header" id="chartITitle">Importe por día</div><div class="card-body p-2"><div class="chart-container"><canvas id="chartI"></canvas></div></div></div></div>
+      </div>
+
+      <!-- Gráfico por centro/empresa -->
+      <div class="d-flex justify-content-end align-items-center mb-2">
+        <span class="text-secondary small me-2">Agrupar por:</span>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn btn-outline-info active" id="btnGroupCentro" onclick="setBarGroupBy('centro')">Centro</button>
+          <button type="button" class="btn btn-outline-info" id="btnGroupEmpresa" onclick="setBarGroupBy('empresa')">Empresa</button>
+        </div>
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-12"><div class="card"><div class="card-header" id="chartCTitle">Toneladas por Centro</div><div class="card-body p-2"><div class="chart-container" style="height:280px"><canvas id="chartC"></canvas></div></div></div></div>
       </div>
 
       <!-- Tabla -->
@@ -105,7 +179,10 @@
           <span>Detalle de albaranes</span>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span id="tablaInfo" class="text-secondary small"></span>
-            <button class="btn btn-sm btn-outline-danger" onclick="exportarPDF()">
+            <button class="btn btn-sm btn-outline-success" onclick="exportarExcel()">
+              <i class="fa-solid fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="abrirModalPDF()">
               <i class="fa-solid fa-file-pdf me-1"></i>PDF
             </button>
           </div>
@@ -114,23 +191,41 @@
           <table class="table table-dark table-sm table-hover mb-0">
             <thead>
               <tr>
-                <th>Fecha</th><th>Albarán</th><th>Centro</th><th>Obra</th>
-                <th>Artículo</th><th>Matrícula</th><th>Cantidad</th><th>Und</th>
-                <th>Importe</th><th>Empresa</th>
+                <th onclick="ordenarPor('fecha')">Fecha <i class="fa-solid fa-sort sort-icon" id="sortIcon_fecha"></i></th>
+                <th onclick="ordenarPor('albaran')">Albarán <i class="fa-solid fa-sort sort-icon" id="sortIcon_albaran"></i></th>
+                <th onclick="ordenarPor('centro')">Centro <i class="fa-solid fa-sort sort-icon" id="sortIcon_centro"></i></th>
+                <th onclick="ordenarPor('obra')">Obra <i class="fa-solid fa-sort sort-icon" id="sortIcon_obra"></i></th>
+                <th onclick="ordenarPor('articulo')">Artículo <i class="fa-solid fa-sort sort-icon" id="sortIcon_articulo"></i></th>
+                <th onclick="ordenarPor('matricula')">Matrícula <i class="fa-solid fa-sort sort-icon" id="sortIcon_matricula"></i></th>
+                <th onclick="ordenarPor('cantidad')">Cantidad <i class="fa-solid fa-sort sort-icon" id="sortIcon_cantidad"></i></th>
+                <th onclick="ordenarPor('und')">Und <i class="fa-solid fa-sort sort-icon" id="sortIcon_und"></i></th>
+                <th onclick="ordenarPor('importe')">Importe <i class="fa-solid fa-sort sort-icon" id="sortIcon_importe"></i></th>
+                <th onclick="ordenarPor('empresa')">Empresa <i class="fa-solid fa-sort sort-icon" id="sortIcon_empresa"></i></th>
               </tr>
             </thead>
             <tbody id="tablaBody"></tbody>
+            <tfoot><tr id="tablaFoot"></tr></tfoot>
           </table>
         </div>
         <!-- Paginación -->
-        <div class="card-footer d-flex justify-content-between align-items-center py-2">
-          <button class="page-btn" id="btnAnterior" onclick="cambiarPagina(-1)">
-            <i class="fa-solid fa-chevron-left me-1"></i>Anterior
-          </button>
-          <span id="paginaInfo" class="text-secondary small"></span>
-          <button class="page-btn" id="btnSiguiente" onclick="cambiarPagina(1)">
-            Siguiente<i class="fa-solid fa-chevron-right ms-1"></i>
-          </button>
+        <div class="card-footer d-flex justify-content-between align-items-center py-2 flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-secondary small">Filas:</span>
+            <select id="filasPorPagina" class="form-select form-select-sm" style="width:auto">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="page-btn" id="btnAnterior" onclick="cambiarPagina(-1)">
+              <i class="fa-solid fa-chevron-left me-1"></i>Anterior
+            </button>
+            <span id="paginaInfo" class="text-secondary small"></span>
+            <button class="page-btn" id="btnSiguiente" onclick="cambiarPagina(1)">
+              Siguiente<i class="fa-solid fa-chevron-right ms-1"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -139,8 +234,41 @@
 
 <script>
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQkT_q1-eBwN4BHY5-1DgbVoXOXH2Ubqb3KeCngXH2uUoXrU6jb-uxVC1qLRWOIFXiICp_37NMqZ3nI/pub?gid=988884133&single=true&output=csv';
-const POR_PAGINA = 50;
-let rawData = [], filteredData = [], cT = null, cI = null, paginaActual = 1;
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+let rawData = [], filteredData = [];
+let cT = null, cI = null, cC = null;
+let paginaActual = 1;
+let porPagina = 50;
+let sortField = null, sortDir = 'asc';
+let chartBarBy = 'centro';
+
+// Definición de columnas (usada por tabla, Excel, PDF)
+const COLUMNAS = [
+  { id:'fecha',     label:'Fecha',     get:r => r['Fecha'] || '' },
+  { id:'albaran',   label:'Albarán',   get:r => r['Albarán'] || r['Albaran'] || '' },
+  { id:'centro',    label:'Centro',    get:r => r['Centro'] || '' },
+  { id:'obra',      label:'Obra',      get:r => r['Nombre obra'] || r['Obra'] || '' },
+  { id:'articulo',  label:'Artículo',  get:r => r['Artículo'] || r['Articulo'] || '' },
+  { id:'matricula', label:'Matrícula', get:r => r._mat || '' },
+  { id:'cantidad',  label:'Cantidad',  get:r => r._cant },
+  { id:'und',       label:'Und',       get:r => (r['Unidades'] || '').trim() },
+  { id:'importe',   label:'Importe',   get:r => r._imp },
+  { id:'empresa',   label:'Empresa',   get:r => r['Empresa'] || '' },
+];
+
+const SORT_GETTERS = {
+  fecha:     r => r._fechaISO || '',
+  albaran:   r => (r['Albarán'] || r['Albaran'] || '').toLowerCase(),
+  centro:    r => (r['Centro'] || '').toLowerCase(),
+  obra:      r => (r['Nombre obra'] || r['Obra'] || '').toLowerCase(),
+  articulo:  r => (r['Artículo'] || r['Articulo'] || '').toLowerCase(),
+  matricula: r => (r._mat || '').toLowerCase(),
+  cantidad:  r => r._cant,
+  und:       r => r._und || '',
+  importe:   r => r._imp,
+  empresa:   r => (r['Empresa'] || '').toLowerCase(),
+};
 
 // ── LOGIN ──────────────────────────────────────────────
 function checkLogin() {
@@ -163,11 +291,48 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarDatos();
   }
 });
+function logout() {
+  sessionStorage.removeItem('auth');
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+// ── INDICADOR DE ACTUALIZACIÓN ──────────────────────────
+function showUpdating(estado) {
+  const btn = document.getElementById('btnActualizar');
+  const icon = btn.querySelector('i');
+  const indicador = document.getElementById('updatingIndicator');
+  if (estado) {
+    icon.classList.add('fa-spin');
+    indicador.style.display = 'inline';
+    btn.disabled = true;
+  } else {
+    icon.classList.remove('fa-spin');
+    indicador.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+function mostrarAlerta(msg, tipo) {
+  const cont = document.getElementById('mainContent');
+  const div = document.createElement('div');
+  div.className = 'alert alert-' + (tipo==='warning' ? 'warning' : 'danger') + ' alert-dismissible fade show py-2 small';
+  div.innerHTML = msg + '<button type="button" class="btn-close btn-close-white" style="font-size:0.65rem;" onclick="this.parentElement.remove()"></button>';
+  cont.prepend(div);
+  setTimeout(() => { if (div.parentElement) div.remove(); }, 6000);
+}
 
 // ── CARGA CSV ──────────────────────────────────────────
 async function cargarDatos() {
-  document.getElementById('loadingMsg').style.display  = 'block';
-  document.getElementById('mainContent').style.display = 'none';
+  const esPrimeraCarga = rawData.length === 0;
+  if (esPrimeraCarga) {
+    document.getElementById('loadingMsg').style.display  = 'block';
+    document.getElementById('mainContent').style.display = 'none';
+  } else {
+    showUpdating(true);
+  }
   try {
     const url = CSV_URL + '&_t=' + Date.now();
     const res  = await fetch(url);
@@ -175,13 +340,24 @@ async function cargarDatos() {
     const csv  = await res.text();
     rawData = parsearCSV(csv);
     document.getElementById('lastUpdate').textContent = 'Actualizado: ' + new Date().toLocaleString('es-ES');
-    filteredData = [...rawData];
-    paginaActual = 1;
-    iniciar();
+    if (esPrimeraCarga) {
+      filteredData = [...rawData];
+      paginaActual = 1;
+      iniciar();
+    } else {
+      populateFilters();
+      applyFilters();
+    }
   } catch(e) {
-    document.getElementById('loadingMsg').innerHTML =
-      '<i class="fa-solid fa-triangle-exclamation text-warning fa-2x mb-2"></i><br>Error cargando datos. Comprueba la conexión.';
+    if (esPrimeraCarga) {
+      document.getElementById('loadingMsg').innerHTML =
+        '<i class="fa-solid fa-triangle-exclamation text-warning fa-2x mb-2"></i><br>Error cargando datos. Comprueba la conexión.';
+    } else {
+      mostrarAlerta('No se pudieron actualizar los datos. Se muestran los últimos datos cargados.', 'warning');
+    }
     console.error(e);
+  } finally {
+    if (!esPrimeraCarga) showUpdating(false);
   }
 }
 
@@ -192,17 +368,29 @@ function parsearCSV(csv) {
     const vals = splitCSVLine(line);
     const obj  = {};
     header.forEach((h,i) => { obj[h.trim()] = (vals[i]||'').trim(); });
-    // Trim todos los strings
     Object.keys(obj).forEach(k => { if (typeof obj[k]==='string') obj[k]=obj[k].trim(); });
-    // Campos normalizados
+
     obj._und  = (obj['Unidades']||'').trim().toUpperCase();
     obj._mat  = (obj['Matrícula']||obj['Matricula']||'').trim();
     obj._cant = parseFloat((obj['Cantidad']||'0').replace(',','.')) || 0;
     obj._imp  = parseFloat((obj['Importe'] ||'0').replace(',','.')) || 0;
-    // Fecha yyyy-mm-dd → dd/mm/yyyy
-    let f = (obj['Fecha']||'').trim();
-    if (/^\d{4}-\d{2}-\d{2}/.test(f)) { const [y,m,d]=f.split('-'); f=`${d}/${m}/${y}`; }
-    obj['Fecha'] = f;
+
+    // Normalizar fecha a dd/mm/yyyy y guardar también yyyy-mm-dd + componentes
+    const f = (obj['Fecha']||'').trim();
+    let y, m, d;
+    if (/^\d{4}-\d{1,2}-\d{1,2}/.test(f)) {
+      [y,m,d] = f.split('-');
+    } else if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(f)) {
+      [d,m,y] = f.split('/');
+    }
+    if (y && m && d) {
+      y = +y; m = +m; d = +d;
+      obj._y = y; obj._m = m; obj._d = d;
+      obj._fechaISO = y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      obj['Fecha'] = String(d).padStart(2,'0') + '/' + String(m).padStart(2,'0') + '/' + y;
+    } else {
+      obj._fechaISO = '';
+    }
     return obj;
   }).filter(r => r['Fecha']);
 }
@@ -224,12 +412,20 @@ function iniciar() {
   document.getElementById('loadingMsg').style.display  = 'none';
   document.getElementById('mainContent').style.display = 'block';
   populateFilters();
+  cargarFiltrosGuardados();
   attachEvents();
-  renderAll();
+  updateBarGroupButtons();
+  actualizarIconosOrden();
+  applyFilters();
 }
 
 // ── FILTROS ────────────────────────────────────────────
 function populateFilters() {
+  const prevCentro    = document.getElementById('filtroCentro').value;
+  const prevEmpresa   = document.getElementById('filtroEmpresa').value;
+  const prevMatricula = document.getElementById('filtroMatricula').value;
+  const prevObra      = document.getElementById('filtroObra').value;
+
   const s = { centro:new Set(), empresa:new Set(), mat:new Set(), obra:new Set() };
   rawData.forEach(r => {
     if (r['Centro'])       s.centro.add(r['Centro']);
@@ -241,6 +437,11 @@ function populateFilters() {
   fillSelect('filtroEmpresa',   [...s.empresa].sort(), 'Empresa');
   fillSelect('filtroMatricula', [...s.mat].sort(),     'Matrícula');
   fillSelect('filtroObra',      [...s.obra].sort(),    'Nombre obra');
+
+  document.getElementById('filtroCentro').value    = prevCentro;
+  document.getElementById('filtroEmpresa').value   = prevEmpresa;
+  document.getElementById('filtroMatricula').value = prevMatricula;
+  document.getElementById('filtroObra').value      = prevObra;
 }
 function fillSelect(id, arr, label) {
   const sel = document.getElementById(id);
@@ -248,14 +449,27 @@ function fillSelect(id, arr, label) {
   arr.forEach(v => { const o=document.createElement('option'); o.value=o.textContent=v; sel.appendChild(o); });
 }
 function attachEvents() {
-  ['filtroCentro','filtroEmpresa','filtroMatricula','filtroObra'].forEach(id =>
+  ['filtroCentro','filtroEmpresa','filtroMatricula','filtroObra','filtroDesde','filtroHasta'].forEach(id =>
     document.getElementById(id).addEventListener('change', applyFilters)
   );
+  let buscarTimeout;
+  document.getElementById('filtroBusqueda').addEventListener('input', () => {
+    clearTimeout(buscarTimeout);
+    buscarTimeout = setTimeout(applyFilters, 300);
+  });
+  document.getElementById('chartGroupMode').addEventListener('change', () => {
+    updateCharts();
+    guardarFiltros();
+  });
+  document.getElementById('filasPorPagina').addEventListener('change', cambiarFilasPorPagina);
 }
 function resetFiltros() {
   ['filtroCentro','filtroEmpresa','filtroMatricula','filtroObra'].forEach(id =>
     document.getElementById(id).value = ''
   );
+  document.getElementById('filtroDesde').value = '';
+  document.getElementById('filtroHasta').value = '';
+  document.getElementById('filtroBusqueda').value = '';
   applyFilters();
 }
 function applyFilters() {
@@ -263,12 +477,107 @@ function applyFilters() {
   const e = document.getElementById('filtroEmpresa').value;
   const m = document.getElementById('filtroMatricula').value;
   const o = document.getElementById('filtroObra').value;
-  filteredData = rawData.filter(r =>
-    (!c || r['Centro']===c) && (!e || r['Empresa']===e) &&
-    (!m || r._mat===m)      && (!o || r['Nombre obra']===o)
-  );
+  const desde = document.getElementById('filtroDesde').value;
+  const hasta = document.getElementById('filtroHasta').value;
+  const texto = document.getElementById('filtroBusqueda').value.trim().toLowerCase();
+
+  filteredData = rawData.filter(r => {
+    if (c && r['Centro']!==c) return false;
+    if (e && r['Empresa']!==e) return false;
+    if (m && r._mat!==m) return false;
+    if (o && r['Nombre obra']!==o) return false;
+    if (desde && r._fechaISO < desde) return false;
+    if (hasta && r._fechaISO > hasta) return false;
+    if (texto) {
+      const campos = [
+        r['Albarán']||r['Albaran'], r['Centro'], r['Nombre obra']||r['Obra'],
+        r._mat, r['Empresa'], r['Artículo']||r['Articulo']
+      ].join(' ').toLowerCase();
+      if (!campos.includes(texto)) return false;
+    }
+    return true;
+  });
+  sortFilteredData();
   paginaActual = 1;
   renderAll();
+  guardarFiltros();
+}
+
+// ── ORDENACIÓN ─────────────────────────────────────────
+function sortFilteredData() {
+  if (!sortField) return;
+  const get = SORT_GETTERS[sortField];
+  filteredData.sort((a,b) => {
+    const va = get(a), vb = get(b);
+    const cmp = va>vb ? 1 : va<vb ? -1 : 0;
+    return sortDir==='asc' ? cmp : -cmp;
+  });
+}
+function ordenarPor(col) {
+  if (sortField === col) { sortDir = sortDir==='asc' ? 'desc' : 'asc'; }
+  else { sortField = col; sortDir = 'asc'; }
+  sortFilteredData();
+  paginaActual = 1;
+  renderTable();
+  actualizarIconosOrden();
+  guardarFiltros();
+}
+function actualizarIconosOrden() {
+  document.querySelectorAll('.sort-icon').forEach(i => { i.className = 'fa-solid fa-sort sort-icon'; });
+  if (sortField) {
+    const icon = document.getElementById('sortIcon_' + sortField);
+    if (icon) icon.className = 'fa-solid sort-icon active ' + (sortDir==='asc' ? 'fa-sort-up' : 'fa-sort-down');
+  }
+}
+
+// ── FILAS POR PÁGINA ───────────────────────────────────
+function cambiarFilasPorPagina() {
+  porPagina = parseInt(document.getElementById('filasPorPagina').value, 10) || 50;
+  paginaActual = 1;
+  renderTable();
+  guardarFiltros();
+}
+
+// ── PERSISTENCIA DE FILTROS (localStorage) ─────────────
+function guardarFiltros() {
+  try {
+    const estado = {
+      centro: document.getElementById('filtroCentro').value,
+      empresa: document.getElementById('filtroEmpresa').value,
+      matricula: document.getElementById('filtroMatricula').value,
+      obra: document.getElementById('filtroObra').value,
+      desde: document.getElementById('filtroDesde').value,
+      hasta: document.getElementById('filtroHasta').value,
+      busqueda: document.getElementById('filtroBusqueda').value,
+      porPagina: porPagina,
+      chartGroupMode: document.getElementById('chartGroupMode').value,
+      chartBarBy: chartBarBy,
+      sortField: sortField,
+      sortDir: sortDir
+    };
+    localStorage.setItem('dashboardFiltros', JSON.stringify(estado));
+  } catch(e) { console.warn('No se pudieron guardar los filtros', e); }
+}
+function cargarFiltrosGuardados() {
+  try {
+    const raw = localStorage.getItem('dashboardFiltros');
+    if (!raw) return;
+    const e = JSON.parse(raw);
+    if (e.centro)    document.getElementById('filtroCentro').value = e.centro;
+    if (e.empresa)   document.getElementById('filtroEmpresa').value = e.empresa;
+    if (e.matricula) document.getElementById('filtroMatricula').value = e.matricula;
+    if (e.obra)      document.getElementById('filtroObra').value = e.obra;
+    if (e.desde)      document.getElementById('filtroDesde').value = e.desde;
+    if (e.hasta)      document.getElementById('filtroHasta').value = e.hasta;
+    if (e.busqueda)   document.getElementById('filtroBusqueda').value = e.busqueda;
+    if (e.porPagina) {
+      porPagina = e.porPagina;
+      document.getElementById('filasPorPagina').value = String(e.porPagina);
+    }
+    if (e.chartGroupMode) document.getElementById('chartGroupMode').value = e.chartGroupMode;
+    if (e.chartBarBy) chartBarBy = e.chartBarBy;
+    if (e.sortField) { sortField = e.sortField; sortDir = e.sortDir || 'asc'; }
+  } catch(e) { console.warn('No se pudieron restaurar los filtros', e); }
 }
 
 // ── RENDER ─────────────────────────────────────────────
@@ -288,56 +597,165 @@ function updateKPIs() {
   document.getElementById('kpiAlbaranes').textContent = alb.size || filteredData.length;
 }
 
+// ── AGRUPACIÓN TEMPORAL (día / semana / mes) ───────────
+function getPeriodInfo(r, mode) {
+  if (mode === 'mes') {
+    const key = r._y + '-' + String(r._m).padStart(2,'0');
+    return { key, label: MESES[r._m-1] + ' ' + r._y, sort: key };
+  }
+  if (mode === 'semana') {
+    const dt = new Date(r._y, r._m-1, r._d);
+    const dow = dt.getDay();
+    const diff = dow===0 ? -6 : 1-dow;
+    const monday = new Date(dt); monday.setDate(dt.getDate()+diff);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+    const fmt = dd => String(dd.getDate()).padStart(2,'0') + '/' + String(dd.getMonth()+1).padStart(2,'0');
+    const key = monday.getFullYear() + '-' + String(monday.getMonth()+1).padStart(2,'0') + '-' + String(monday.getDate()).padStart(2,'0');
+    return { key, label: fmt(monday) + '–' + fmt(sunday), sort: key };
+  }
+  // día
+  return { key: r['Fecha'], label: r['Fecha'], sort: r._fechaISO };
+}
+
 function updateCharts() {
+  updateLineCharts();
+  updateBarChart();
+}
+
+function updateLineCharts() {
+  const mode = document.getElementById('chartGroupMode').value;
+  const modoTexto = { dia:'día', semana:'semana', mes:'mes' }[mode];
+  document.getElementById('chartTTitle').textContent = 'Toneladas por ' + modoTexto;
+  document.getElementById('chartITitle').textContent = 'Importe por ' + modoTexto;
+
+  const mT={}, mI={}, mCount={}, orden={};
+  filteredData.forEach(r => {
+    if (!r._fechaISO) return;
+    const p = getPeriodInfo(r, mode);
+    if (!(p.key in orden)) orden[p.key] = { label:p.label, sort:p.sort };
+    mI[p.key] = (mI[p.key]||0) + r._imp;
+    mCount[p.key] = (mCount[p.key]||0) + 1;
+    if (r._und==='T') mT[p.key] = (mT[p.key]||0) + r._cant;
+  });
+  const keys = Object.keys(orden).sort((a,b) => orden[a].sort < orden[b].sort ? -1 : orden[a].sort > orden[b].sort ? 1 : 0);
+  const labels = keys.map(k => orden[k].label);
+
+  const opts = (formatter) => ({
+    responsive:true, maintainAspectRatio:false, animation:false,
+    plugins:{
+      legend:{ labels:{ color:'#c5c6c7' } },
+      tooltip:{ callbacks:{ label:function(context) {
+        const key = keys[context.dataIndex];
+        const cnt = mCount[key] || 0;
+        return [context.dataset.label + ': ' + formatter(context.parsed.y), 'Albaranes: ' + cnt];
+      }}}
+    },
+    scales:{
+      x:{ ticks:{ color:'#c5c6c7', maxTicksLimit:14 }, grid:{ color:'#ffffff11' } },
+      y:{ ticks:{ color:'#c5c6c7' }, grid:{ color:'#ffffff11' } }
+    }
+  });
+
+  if (cT) { cT.destroy(); cT=null; }
+  if (cI) { cI.destroy(); cI=null; }
+
+  cT = new Chart(document.getElementById('chartT'), {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Toneladas', data:keys.map(k=>mT[k]||0), borderColor:'#66fcf1', backgroundColor:'rgba(102,252,241,0.1)', tension:0.2, pointRadius:2 }] },
+    options: opts(v => v.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' T')
+  });
+  cI = new Chart(document.getElementById('chartI'), {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Importe', data:keys.map(k=>mI[k]||0), borderColor:'#45a29e', backgroundColor:'rgba(69,162,158,0.1)', tension:0.2, pointRadius:2 }] },
+    options: opts(v => v.toLocaleString('es-ES',{minimumFractionDigits:2}) + ' €')
+  });
+}
+
+function setBarGroupBy(val) {
+  chartBarBy = val;
+  updateBarGroupButtons();
+  updateBarChart();
+  guardarFiltros();
+}
+function updateBarGroupButtons() {
+  document.getElementById('btnGroupCentro').classList.toggle('active', chartBarBy==='centro');
+  document.getElementById('btnGroupEmpresa').classList.toggle('active', chartBarBy==='empresa');
+}
+function updateBarChart() {
+  const field = chartBarBy==='empresa' ? 'Empresa' : 'Centro';
+  document.getElementById('chartCTitle').textContent = 'Toneladas por ' + (chartBarBy==='empresa' ? 'Empresa' : 'Centro');
+
   const mT={}, mI={};
   filteredData.forEach(r => {
-    const f=r['Fecha']; if(!f) return;
-    mI[f]=(mI[f]||0)+r._imp;
-    if (r._und==='T') mT[f]=(mT[f]||0)+r._cant;
+    const k = (r[field] || '(Sin dato)').trim();
+    mI[k] = (mI[k]||0) + r._imp;
+    if (r._und==='T') mT[k] = (mT[k]||0) + r._cant;
   });
-  const sortF = obj => Object.keys(obj).sort((a,b)=>{
-    const p=s=>{const[d,m,y]=s.split('/');return new Date(y,m-1,d);}; return p(a)-p(b);
+  const labels = Object.keys(mT).sort((a,b) => mT[b]-mT[a]).slice(0,15);
+
+  if (cC) { cC.destroy(); cC=null; }
+  cC = new Chart(document.getElementById('chartC'), {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Toneladas', data:labels.map(l=>mT[l]||0), backgroundColor:'#e0a800' }] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label:function(context) {
+          const label = context.label;
+          const ton = context.parsed.x;
+          const imp = mI[label] || 0;
+          return [
+            'Toneladas: ' + ton.toLocaleString('es-ES',{minimumFractionDigits:2}),
+            'Importe: ' + imp.toLocaleString('es-ES',{minimumFractionDigits:2}) + ' €'
+          ];
+        }}}
+      },
+      scales:{
+        x:{ ticks:{ color:'#c5c6c7' }, grid:{ color:'#ffffff11' } },
+        y:{ ticks:{ color:'#c5c6c7' }, grid:{ color:'#ffffff11' } }
+      }
+    }
   });
-  const labelsT=sortF(mT), labelsI=sortF(mI);
-  const opts=()=>({responsive:true,maintainAspectRatio:false,animation:false,
-    plugins:{legend:{labels:{color:'#c5c6c7'}}},
-    scales:{x:{ticks:{color:'#c5c6c7',maxTicksLimit:14},grid:{color:'#ffffff11'}},
-            y:{ticks:{color:'#c5c6c7'},grid:{color:'#ffffff11'}}}});
-  if(cT){cT.destroy();cT=null;} if(cI){cI.destroy();cI=null;}
-  cT=new Chart(document.getElementById('chartT'),{type:'line',data:{labels:labelsT,datasets:[{label:'Toneladas',data:labelsT.map(l=>mT[l]),borderColor:'#66fcf1',backgroundColor:'rgba(102,252,241,0.1)',tension:0.2,pointRadius:2}]},options:opts()});
-  cI=new Chart(document.getElementById('chartI'),{type:'line',data:{labels:labelsI,datasets:[{label:'Importe (€)',data:labelsI.map(l=>mI[l]),borderColor:'#45a29e',backgroundColor:'rgba(69,162,158,0.1)',tension:0.2,pointRadius:2}]},options:opts()});
+}
+
+function formatCell(c, r) {
+  const v = c.get(r);
+  if (c.id === 'und') {
+    return v==='T' ? '<span class="badge-t">T</span>'
+         : v==='UN' ? '<span class="badge-un">UN</span>'
+         : v==='SAC' ? '<span class="badge-sac">SAC</span>'
+         : v;
+  }
+  if (c.id === 'importe')  return v.toLocaleString('es-ES',{minimumFractionDigits:2});
+  if (c.id === 'cantidad') return v.toLocaleString('es-ES',{maximumFractionDigits:2});
+  return v;
 }
 
 function renderTable() {
-  const total   = filteredData.length;
-  const totalPag = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const total    = filteredData.length;
+  const totalPag = Math.max(1, Math.ceil(total / porPagina));
   if (paginaActual > totalPag) paginaActual = totalPag;
-  const inicio  = (paginaActual-1)*POR_PAGINA;
-  const rows    = filteredData.slice(inicio, inicio+POR_PAGINA);
+  const inicio = (paginaActual-1)*porPagina;
+  const rows   = filteredData.slice(inicio, inicio+porPagina);
 
-  document.getElementById('tablaInfo').textContent   = `${total} filas`;
-  document.getElementById('paginaInfo').textContent  = `Página ${paginaActual} de ${totalPag}`;
-  document.getElementById('btnAnterior').disabled    = paginaActual === 1;
-  document.getElementById('btnSiguiente').disabled   = paginaActual === totalPag;
+  document.getElementById('tablaInfo').textContent  = `${total} filas`;
+  document.getElementById('paginaInfo').textContent = `Página ${paginaActual} de ${totalPag}`;
+  document.getElementById('btnAnterior').disabled   = paginaActual === 1;
+  document.getElementById('btnSiguiente').disabled  = paginaActual === totalPag;
 
-  document.getElementById('tablaBody').innerHTML = rows.map(r => {
-    const u = r._und==='T'   ? '<span class="badge-t">T</span>'
-            : r._und==='UN'  ? '<span class="badge-un">UN</span>'
-            : r._und==='SAC' ? '<span class="badge-sac">SAC</span>'
-            : (r['Unidades']||'');
-    return `<tr>
-      <td>${r['Fecha']||''}</td>
-      <td>${r['Albarán']||r['Albaran']||''}</td>
-      <td>${r['Centro']||''}</td>
-      <td>${r['Nombre obra']||r['Obra']||''}</td>
-      <td>${r['Artículo']||r['Articulo']||''}</td>
-      <td>${r._mat||''}</td>
-      <td>${r._cant}</td>
-      <td>${u}</td>
-      <td>${r._imp.toLocaleString('es-ES',{minimumFractionDigits:2})}</td>
-      <td>${r['Empresa']||''}</td>
-    </tr>`;
-  }).join('');
+  document.getElementById('tablaBody').innerHTML = rows.map(r =>
+    '<tr>' + COLUMNAS.map(c => `<td>${formatCell(c,r)}</td>`).join('') + '</tr>'
+  ).join('');
+
+  let tonPag=0, impPag=0;
+  rows.forEach(r => { impPag += r._imp; if (r._und==='T') tonPag += r._cant; });
+  document.getElementById('tablaFoot').innerHTML =
+    '<td colspan="6" class="text-end">Totales página visible:</td>' +
+    `<td>${tonPag.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} T</td>` +
+    '<td></td>' +
+    `<td>${impPag.toLocaleString('es-ES',{minimumFractionDigits:2})} €</td>` +
+    '<td></td>';
 }
 
 function cambiarPagina(dir) {
@@ -346,12 +764,42 @@ function cambiarPagina(dir) {
   document.querySelector('.card:last-child').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+// ── EXPORTAR EXCEL ──────────────────────────────────────
+function exportarExcel() {
+  const headers = COLUMNAS.map(c => c.label);
+  const rows = filteredData.map(r => COLUMNAS.map(c => c.get(r)));
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map(() => ({ wch:16 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Albaranes');
+  XLSX.writeFile(wb, 'albaranes_' + new Date().toLocaleDateString('es-ES').replace(/\//g,'-') + '.xlsx');
+}
+
 // ── EXPORTAR PDF ───────────────────────────────────────
-function exportarPDF() {
+function abrirModalPDF() {
+  const cont = document.getElementById('pdfColsList');
+  cont.innerHTML = COLUMNAS.map(c => `
+    <div class="form-check pdf-col-check">
+      <input class="form-check-input" type="checkbox" id="pdfCol_${c.id}" checked>
+      <label class="form-check-label small" for="pdfCol_${c.id}">${c.label}</label>
+    </div>`).join('');
+  document.getElementById('pdfModal').style.display = 'flex';
+}
+function cerrarModalPDF() {
+  document.getElementById('pdfModal').style.display = 'none';
+}
+function generarPDF() {
+  const columnas = COLUMNAS.filter(c => document.getElementById('pdfCol_'+c.id).checked);
+  const incluirGraficos = document.getElementById('pdfIncluirGraficos').checked;
+  if (columnas.length === 0) { mostrarAlerta('Selecciona al menos una columna.', 'warning'); return; }
+  cerrarModalPDF();
+  exportarPDF(columnas, incluirGraficos);
+}
+
+function exportarPDF(columnas, incluirGraficos) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
 
-  // Título y fecha
   doc.setFontSize(14);
   doc.setTextColor(30,30,30);
   doc.text('Dashboard Cemento — Detalle de Albaranes', 14, 15);
@@ -359,7 +807,6 @@ function exportarPDF() {
   doc.setTextColor(100);
   doc.text('Generado: ' + new Date().toLocaleString('es-ES'), 14, 21);
 
-  // Resumen KPIs
   doc.setFontSize(10);
   doc.setTextColor(30,30,30);
   const kpiTexto = [
@@ -370,24 +817,31 @@ function exportarPDF() {
   ].join('    |    ');
   doc.text(kpiTexto, 14, 28);
 
-  // Tabla completa (todos los filteredData, no solo la página visible)
-  const head = [['Fecha','Albarán','Centro','Obra','Artículo','Matrícula','Cantidad','Und','Importe','Empresa']];
-  const body = filteredData.map(r => [
-    r['Fecha']||'',
-    r['Albarán']||r['Albaran']||'',
-    r['Centro']||'',
-    r['Nombre obra']||r['Obra']||'',
-    r['Artículo']||r['Articulo']||'',
-    r._mat||'',
-    r._cant,
-    (r['Unidades']||'').trim(),
-    r._imp.toLocaleString('es-ES',{minimumFractionDigits:2}),
-    r['Empresa']||''
-  ]);
+  let startY = 33;
+  if (incluirGraficos && cT && cI && cC) {
+    try {
+      const imgT = cT.toBase64Image();
+      const imgI = cI.toBase64Image();
+      const imgC = cC.toBase64Image();
+      const w = 85, h = 53, y = 33, gap = 5;
+      doc.addImage(imgT, 'PNG', 14, y, w, h);
+      doc.addImage(imgI, 'PNG', 14+w+gap, y, w, h);
+      doc.addImage(imgC, 'PNG', 14+(w+gap)*2, y, w, h);
+      startY = y + h + 8;
+    } catch(e) {
+      console.warn('No se pudieron añadir los gráficos al PDF', e);
+    }
+  }
+
+  const head = [columnas.map(c => c.label)];
+  const body = filteredData.map(r => columnas.map(c => {
+    const v = c.get(r);
+    return typeof v === 'number' ? v.toLocaleString('es-ES',{minimumFractionDigits:2}) : v;
+  }));
 
   doc.autoTable({
     head, body,
-    startY: 33,
+    startY,
     styles: { fontSize:7, cellPadding:1.5 },
     headStyles: { fillColor:[69,162,158], textColor:255, fontStyle:'bold' },
     alternateRowStyles: { fillColor:[245,245,245] },
